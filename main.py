@@ -9,15 +9,17 @@ import csv
 from datetime import datetime
 import uuid
 import ntpath
+import os.path
+
 
 import chess.pgn
 
 file_headers_game = ["game_id", "event", "site", "date_played", "round", "white", "black", "result", "winner",
                      "black_elo", "black_rating_diff", "eco", "termination", "time_control", "utc_date",
-                     "utc_time", "variant", "white_elo", "white_rating_diff", "date_extracted", "file_name"]
+                     "utc_time", "variant", "white_elo", "white_rating_diff", "ply_count", "date_created", "file_name"]
 
 file_headers_moves = ["game_id", "order_no", "move", "is_check", "is_check_mate", "is_fifty_moves",
-                      "is_fivefold_repetition", "is_game_over", "is_insufficient_material", "move_sequence"]
+                      "is_fivefold_repetition", "is_game_over", "is_insufficient_material", "fen", "move_sequence"]
 
 log = logging.getLogger("pgn to dataset")
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +48,7 @@ def __get_game_row_data(game, row_number, file_name):
             game.headers["Variant"] if "Variant" in game.headers else "",
             game.headers["WhiteElo"] if "WhiteElo" in game.headers else "",
             game.headers["WhiteRatingDiff"] if "WhiteRatingDiff" in game.headers else "",
+            game.headers["PlyCount"] if "PlyCount" in game.headers else "",
             __get_time_stamp(), ntpath.basename(file_name)]
 
 
@@ -57,6 +60,7 @@ def __get_move_row_data(move, board, game_id, order_number, sequence):
             1 if board.is_fivefold_repetition() else 0,
             1 if board.is_game_over() else 0,
             1 if board.is_insufficient_material() else 0,
+            board.board_fen(),
             sequence]
 
 
@@ -108,7 +112,12 @@ def process_file(pgn_file, games_writer, moves_writer):
 
 
 def is_valid_pgn_list(file_list):
-    return len(file_list) > 0
+    if len(file_list) > 0:
+        for file in file_list:
+            if not os.path.isfile(file):
+                return False
+        return True
+    return False
 
 
 def process_pgn(file_list, output_file=None):
@@ -148,10 +157,11 @@ def process_pgn(file_list, output_file=None):
 
 
 if __name__ == '__main__':
-    files = ["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
-             "data/pgn/lichess_manwithavan_2021-01-04.pgn"]
+    files = ["data/pgn/tal_bronstein_1982.pgn"]
+    #files = ["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn"]
+            # "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+            # "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+            # "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
+             #"data/pgn/lichess_manwithavan_2021-01-04.pgn"]
 
-    process_pgn(files, "carlsen")
+    process_pgn(files, "bronstein")
