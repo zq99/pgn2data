@@ -6,20 +6,26 @@ lichess.org/games/export/[user_name]?since=1525132800000
 
 import logging
 import csv
+from collections import Counter
 from datetime import datetime
 import uuid
 import ntpath
 import os.path
 
-
 import chess.pgn
 
-file_headers_game = ["game_id", "event", "site", "date_played", "round", "white", "black", "result", "winner",
-                     "black_elo", "black_rating_diff", "eco", "termination", "time_control", "utc_date",
-                     "utc_time", "variant", "white_elo", "white_rating_diff", "ply_count", "date_created", "file_name"]
+file_headers_game = ["game_id", "event", "site", "date_played", "round", "white", "black", "result", "white_elo",
+                     "white_rating_diff",
+                     "black_elo", "black_rating_diff", "winner", "winner_elo", "loser", "loser_elo",
+                     "winner_loser_elo_diff", "eco", "termination", "time_control", "utc_date",
+                     "utc_time", "variant", "ply_count", "date_created", "file_name"]
 
-file_headers_moves = ["game_id", "order_no", "move", "is_check", "is_check_mate", "is_fifty_moves",
-                      "is_fivefold_repetition", "is_game_over", "is_insufficient_material", "fen", "move_sequence"]
+file_headers_moves = ["game_id", "move_no", "move", "fen", "is_check", "is_check_mate", "is_fifty_moves",
+                      "is_fivefold_repetition", "is_game_over", "is_insufficient_material",
+                      "w_count", "b_count",
+                      "wp_count", "bp_count", "wq_count", "bq_count", "wb_count", "bb_count", "wn_count", "bn_count",
+                      "wr_count", "br_count",
+                      "captured_score_for_white", "captured_score_for_black", "move_sequence"]
 
 log = logging.getLogger("pgn to dataset")
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +35,15 @@ def __get_game_row_data(game, row_number, file_name):
     """
     takes a "game" object and converts it into a list with the data for each column
     """
+    winner = __get_winner(game)
+    loser = game.headers["White"] if winner == game.headers["Black"] else (
+        game.headers["Black"] if winner == game.headers["White"] else winner)
+    winner_elo = game.headers["WhiteElo"] if winner == game.headers["White"] else (
+        game.headers["BlackElo"] if winner == game.headers["Black"] else "")
+    loser_elo = game.headers["WhiteElo"] if winner == game.headers["Black"] else (
+        game.headers["BlackElo"] if winner == game.headers["White"] else "")
+    winner_loser_elo_diff = 0 if not (str(winner_elo).isnumeric() and str(loser_elo).isnumeric()) else int(
+        winner_elo) - int(loser_elo)
     return [row_number,
             game.headers["Event"] if "Event" in game.headers else "",
             game.headers["Site"] if "Site" in game.headers else "",
@@ -37,30 +52,49 @@ def __get_game_row_data(game, row_number, file_name):
             game.headers["White"] if "White" in game.headers else "",
             game.headers["Black"] if "Black" in game.headers else "",
             game.headers["Result"] if "Result" in game.headers else "",
-            __get_winner(game),
+            game.headers["WhiteElo"] if "WhiteElo" in game.headers else "",
+            game.headers["WhiteRatingDiff"] if "WhiteRatingDiff" in game.headers else "",
             game.headers["BlackElo"] if "BlackElo" in game.headers else "",
             game.headers["BlackRatingDiff"] if "BlackRatingDiff" in game.headers else "",
+            winner,
+            winner_elo,
+            loser,
+            loser_elo,
+            winner_loser_elo_diff,
             game.headers["ECO"] if "ECO" in game.headers else "",
             game.headers["Termination"] if "Termination" in game.headers else "",
             game.headers["TimeControl"] if "TimeControl" in game.headers else "",
             game.headers["UTCDate"] if "UTCDate" in game.headers else "",
             game.headers["UTCTime"] if "UTCTime" in game.headers else "",
             game.headers["Variant"] if "Variant" in game.headers else "",
-            game.headers["WhiteElo"] if "WhiteElo" in game.headers else "",
-            game.headers["WhiteRatingDiff"] if "WhiteRatingDiff" in game.headers else "",
             game.headers["PlyCount"] if "PlyCount" in game.headers else "",
             __get_time_stamp(), ntpath.basename(file_name)]
 
 
 def __get_move_row_data(move, board, game_id, order_number, sequence):
-    return [game_id, order_number, move,
+    fen_stats = FenStats(board.board_fen())
+    piece_total = fen_stats.get_total_piece_count()
+    return [game_id, order_number, move, board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
             1 if board.is_fifty_moves() else 0,
             1 if board.is_fivefold_repetition() else 0,
             1 if board.is_game_over() else 0,
             1 if board.is_insufficient_material() else 0,
-            board.board_fen(),
+            piece_total[0],
+            piece_total[1],
+            fen_stats.get_piece_count(chess.PAWN, chess.WHITE),
+            fen_stats.get_piece_count(chess.PAWN, chess.BLACK),
+            fen_stats.get_piece_count(chess.QUEEN, chess.WHITE),
+            fen_stats.get_piece_count(chess.QUEEN, chess.BLACK),
+            fen_stats.get_piece_count(chess.BISHOP, chess.WHITE),
+            fen_stats.get_piece_count(chess.BISHOP, chess.BLACK),
+            fen_stats.get_piece_count(chess.KNIGHT, chess.WHITE),
+            fen_stats.get_piece_count(chess.KNIGHT, chess.BLACK),
+            fen_stats.get_piece_count(chess.ROOK, chess.WHITE),
+            fen_stats.get_piece_count(chess.ROOK, chess.BLACK),
+            fen_stats.get_captured_score(chess.WHITE),
+            fen_stats.get_captured_score(chess.BLACK),
             sequence]
 
 
@@ -84,6 +118,93 @@ def __open_file(file_name):
     except PermissionError:
         log.error("Could not access the file: {}".format(file_name))
         return None
+
+
+piece_fen_letters = {
+    chess.PAWN: "p",
+    chess.QUEEN: "q",
+    chess.KNIGHT: "n",
+    chess.KING: "k",
+    chess.ROOK: "r",
+    chess.BISHOP: "b"
+}
+
+piece_fen_value = {
+    chess.PAWN: 1,
+    chess.QUEEN: 9,
+    chess.KNIGHT: 3,
+    chess.KING: 0,
+    chess.ROOK: 5,
+    chess.BISHOP: 3
+}
+
+piece_fen_count = {
+    chess.PAWN: 8,
+    chess.QUEEN: 1,
+    chess.KNIGHT: 2,
+    chess.KING: 1,
+    chess.ROOK: 2,
+    chess.BISHOP: 2
+}
+
+
+class FenStats:
+    # value of all player pieces at start of game
+    PIECE_VALUE_TOTAL = 39
+
+    def __init__(self, fen):
+        self.fen_position = fen
+
+    @staticmethod
+    def __is_valid_color(color):
+        return color in [chess.WHITE, chess.BLACK]
+
+    @staticmethod
+    def __is_valid_piece(piece):
+        return piece in piece_fen_letters
+
+    def get_total_piece_count(self):
+        pieces_to_count = [chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.KING]
+        white_total = 0
+        black_total = 0
+        for piece in pieces_to_count:
+            white_total += self.get_piece_count(piece, chess.WHITE)
+            black_total += self.get_piece_count(piece, chess.BLACK)
+        return white_total, black_total
+
+    def get_piece_count(self, piece, color):
+        """
+        the parameters "piece" and "color" are constants are from the python chess library
+        color is either: chess.WHITE or chess.BLACK
+        pieces: chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK
+        """
+        if not self.__is_valid_piece(piece):
+            log.error("invalid piece parameter {}".format(str(piece)))
+            return 0
+        elif not self.__is_valid_color(color):
+            log.error("invalid color parameter {}".format(str(color)))
+            return 0
+        piece_letter = piece_fen_letters[piece].upper() if color == chess.BLACK else piece_fen_letters[piece].lower()
+        c = Counter(self.fen_position)
+        return c[piece_letter]
+
+    def get_captured_score(self, color):
+        """
+        color is the color of the player you want the score for.
+        so if color= white, you need to calculate how how many black pieces captured and the total value
+        of these pieces
+        """
+        if not self.__is_valid_color(color):
+            log.error("invalid color parameter {}".format(str(color)))
+            return 0
+
+        captured_score = 0
+        pieces_to_sum = [chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK]
+        for piece in pieces_to_sum:
+            count_at_start = piece_fen_count[piece]
+            count_at_position = self.get_piece_count(piece, chess.WHITE if color == chess.BLACK else chess.BLACK)
+            captured_score += (count_at_start - count_at_position) * piece_fen_value[piece]
+        return captured_score
 
 
 def process_file(pgn_file, games_writer, moves_writer):
@@ -158,10 +279,10 @@ def process_pgn(file_list, output_file=None):
 
 if __name__ == '__main__':
     files = ["data/pgn/tal_bronstein_1982.pgn"]
-    #files = ["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn"]
-            # "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-            # "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-            # "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
-             #"data/pgn/lichess_manwithavan_2021-01-04.pgn"]
+    # files = ["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+    #         "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+    #         "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+    #         "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
+    #        "data/pgn/lichess_manwithavan_2021-01-04.pgn"]
 
     process_pgn(files, "bronstein")
