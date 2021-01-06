@@ -73,7 +73,7 @@ def __get_game_row_data(game, row_number, file_name):
 
 def __get_move_row_data(move, board, game_id, order_number, sequence):
     fen_stats = FenStats(board.board_fen())
-    piece_total = fen_stats.get_total_piece_count()
+    white_count, black_count = fen_stats.get_total_piece_count()
     return [game_id, order_number, move, board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
@@ -81,8 +81,8 @@ def __get_move_row_data(move, board, game_id, order_number, sequence):
             1 if board.is_fivefold_repetition() else 0,
             1 if board.is_game_over() else 0,
             1 if board.is_insufficient_material() else 0,
-            piece_total[0],
-            piece_total[1],
+            white_count,
+            black_count,
             fen_stats.get_piece_count(chess.PAWN, chess.WHITE),
             fen_stats.get_piece_count(chess.PAWN, chess.BLACK),
             fen_stats.get_piece_count(chess.QUEEN, chess.WHITE),
@@ -119,6 +119,15 @@ def __open_file(file_name):
         log.error("Could not access the file: {}".format(file_name))
         return None
 
+
+piece_fen_letter_to_chess_piece = {
+    "p": chess.PAWN,
+    "q": chess.QUEEN,
+    "n": chess.KNIGHT,
+    "k": chess.KING,
+    "r": chess.ROOK,
+    "b": chess.BISHOP
+}
 
 piece_fen_letters = {
     chess.PAWN: "p",
@@ -164,6 +173,9 @@ class FenStats:
         return piece in piece_fen_letters
 
     def get_total_piece_count(self):
+        """
+        returns a tuple with the total number of white and black pieces
+        """
         pieces_to_count = [chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.KING]
         white_total = 0
         black_total = 0
@@ -184,7 +196,7 @@ class FenStats:
         elif not self.__is_valid_color(color):
             log.error("invalid color parameter {}".format(str(color)))
             return 0
-        piece_letter = piece_fen_letters[piece].upper() if color == chess.BLACK else piece_fen_letters[piece].lower()
+        piece_letter = piece_fen_letters[piece].lower() if color == chess.BLACK else piece_fen_letters[piece].upper()
         c = Counter(self.fen_position)
         return c[piece_letter]
 
@@ -205,6 +217,39 @@ class FenStats:
             count_at_position = self.get_piece_count(piece, chess.WHITE if color == chess.BLACK else chess.BLACK)
             captured_score += (count_at_start - count_at_position) * piece_fen_value[piece]
         return captured_score
+
+    def get_piece_count_and_value_for_fen_row(self, row, color):
+        """
+        Returns the number of white and black pieces for a specified row in the the fen string (includes king)
+        Also returns the total valuations for the white and black pieces (excludes king)
+        row = fen row number between 1 and 8
+        color = chess.WHITE or chess.BLACK
+        """
+        w_piece_count = 0
+        w_piece_valuation = 0
+        b_piece_count = 0
+        b_piece_valuation = 0
+
+        if not self.__is_valid_color(color):
+            log.error("invalid color parameter {}".format(str(color)))
+            return 0, 0, 0, 0
+        if not str(row).isnumeric() or (row < 1 or row > 8):
+            log.error("invalid fen row {}".format(str(color)))
+            return 0, 0, 0, 0
+
+        fen_rows = self.fen_position.split("/")
+        row_to_evaluate = fen_rows[row - 1]
+        for value in row_to_evaluate:
+            if not str(value).isnumeric():
+                if str(value).lower() in piece_fen_letter_to_chess_piece:
+                    chess_piece = piece_fen_letter_to_chess_piece[value]
+                    color = chess.WHITE if str(value).upper() == value else chess.BLACK
+                    w_piece_count += 1 if color == chess.WHITE else 0
+                    b_piece_count += 1 if color == chess.BLACK else 0
+                    w_piece_valuation += piece_fen_value[chess_piece] if color == chess.WHITE else 0
+                    b_piece_valuation += piece_fen_value[chess_piece] if color == chess.BLACK else 0
+
+        return w_piece_count, w_piece_valuation, b_piece_count, b_piece_valuation
 
 
 def process_file(pgn_file, games_writer, moves_writer):
@@ -285,4 +330,10 @@ if __name__ == '__main__':
     #         "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
     #        "data/pgn/lichess_manwithavan_2021-01-04.pgn"]
 
-    process_pgn(files, "bronstein")
+    # process_pgn(files, "bronstein")
+    f = "5r2/6pk/2R3p1/2P5/1P3q2/5PqP/8/4q2K"
+    s = FenStats(f)
+    print(s.get_piece_count(chess.QUEEN, chess.WHITE))
+    print(s.get_piece_count(chess.QUEEN, chess.BLACK))
+    print("p".upper())
+    print("p".lower())
