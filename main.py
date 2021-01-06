@@ -25,10 +25,22 @@ file_headers_moves = ["game_id", "move_no", "move", "fen", "is_check", "is_check
                       "w_count", "b_count",
                       "wp_count", "bp_count", "wq_count", "bq_count", "wb_count", "bb_count", "wn_count", "bn_count",
                       "wr_count", "br_count",
-                      "captured_score_for_white", "captured_score_for_black", "move_sequence"]
+                      "captured_score_for_white", "captured_score_for_black",
+                      "fen_row1_w_count", "fen_row2_w_count", "fen_row3_w_count", "fen_row4_w_count",
+                      "fen_row5_w_count", "fen_row6_w_count", "fen_row7_w_count", "fen_row8_w_count",
+                      "fen_row1_b_count", "fen_row2_b_count", "fen_row3_b_count", "fen_row4_b_count",
+                      "fen_row5_b_count", "fen_row6_b_count", "fen_row7_b_count", "fen_row8_b_count",
+                      "fen_row1_w_value", "fen_row2_w_value", "fen_row3_w_value", "fen_row4_w_value",
+                      "fen_row5_w_value", "fen_row6_w_value", "fen_row7_w_value", "fen_row8_w_value",
+                      "fen_row1_b_value", "fen_row2_b_value", "fen_row3_b_value", "fen_row4_b_value",
+                      "fen_row5_b_value", "fen_row6_b_value", "fen_row7_b_value", "fen_row8_b_value",
+                      "move_sequence"]
 
 log = logging.getLogger("pgn to dataset")
 logging.basicConfig(level=logging.INFO)
+
+
+def full_range(start, stop): return range(start, stop + 1)
 
 
 def __get_game_row_data(game, row_number, file_name):
@@ -74,6 +86,7 @@ def __get_game_row_data(game, row_number, file_name):
 def __get_move_row_data(move, board, game_id, order_number, sequence):
     fen_stats = FenStats(board.board_fen())
     white_count, black_count = fen_stats.get_total_piece_count()
+    fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
     return [game_id, order_number, move, board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
@@ -95,6 +108,14 @@ def __get_move_row_data(move, board, game_id, order_number, sequence):
             fen_stats.get_piece_count(chess.ROOK, chess.BLACK),
             fen_stats.get_captured_score(chess.WHITE),
             fen_stats.get_captured_score(chess.BLACK),
+            fen_row_valuations[0][0], fen_row_valuations[1][0], fen_row_valuations[2][0], fen_row_valuations[3][0],
+            fen_row_valuations[4][0], fen_row_valuations[5][0], fen_row_valuations[6][0], fen_row_valuations[7][0],
+            fen_row_valuations[0][1], fen_row_valuations[1][1], fen_row_valuations[2][1], fen_row_valuations[3][1],
+            fen_row_valuations[4][1], fen_row_valuations[5][1], fen_row_valuations[6][1], fen_row_valuations[7][1],
+            fen_row_valuations[0][2], fen_row_valuations[1][2], fen_row_valuations[2][2], fen_row_valuations[3][2],
+            fen_row_valuations[4][2], fen_row_valuations[5][2], fen_row_valuations[6][2], fen_row_valuations[7][2],
+            fen_row_valuations[0][3], fen_row_valuations[1][3], fen_row_valuations[2][3], fen_row_valuations[3][3],
+            fen_row_valuations[4][3], fen_row_valuations[5][3], fen_row_valuations[6][3], fen_row_valuations[7][3],
             sequence]
 
 
@@ -218,7 +239,19 @@ class FenStats:
             captured_score += (count_at_start - count_at_position) * piece_fen_value[piece]
         return captured_score
 
-    def get_piece_count_and_value_for_fen_row(self, row, color):
+    def get_fen_row_counts_and_valuation(self):
+        """
+        get row counts and evaluation for all fen rows
+        returns a list with 8 tuples
+        each tuple has 4 values:
+        white_cnt, black_cnt, white_val, black_val
+        """
+        results = []
+        for row in full_range(1, 8):
+            results.append(self.get_piece_count_and_value_for_fen_row(row))
+        return results
+
+    def get_piece_count_and_value_for_fen_row(self, row):
         """
         Returns the number of white and black pieces for a specified row in the the fen string (includes king)
         Also returns the total valuations for the white and black pieces (excludes king)
@@ -230,11 +263,8 @@ class FenStats:
         b_piece_count = 0
         b_piece_valuation = 0
 
-        if not self.__is_valid_color(color):
-            log.error("invalid color parameter {}".format(str(color)))
-            return 0, 0, 0, 0
         if not str(row).isnumeric() or (row < 1 or row > 8):
-            log.error("invalid fen row {}".format(str(color)))
+            log.error("invalid fen row {}".format(str(row)))
             return 0, 0, 0, 0
 
         fen_rows = self.fen_position.split("/")
@@ -242,7 +272,7 @@ class FenStats:
         for value in row_to_evaluate:
             if not str(value).isnumeric():
                 if str(value).lower() in piece_fen_letter_to_chess_piece:
-                    chess_piece = piece_fen_letter_to_chess_piece[value]
+                    chess_piece = piece_fen_letter_to_chess_piece[str(value).lower()]
                     color = chess.WHITE if str(value).upper() == value else chess.BLACK
                     w_piece_count += 1 if color == chess.WHITE else 0
                     b_piece_count += 1 if color == chess.BLACK else 0
@@ -330,10 +360,4 @@ if __name__ == '__main__':
     #         "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
     #        "data/pgn/lichess_manwithavan_2021-01-04.pgn"]
 
-    # process_pgn(files, "bronstein")
-    f = "5r2/6pk/2R3p1/2P5/1P3q2/5PqP/8/4q2K"
-    s = FenStats(f)
-    print(s.get_piece_count(chess.QUEEN, chess.WHITE))
-    print(s.get_piece_count(chess.QUEEN, chess.BLACK))
-    print("p".upper())
-    print("p".lower())
+    process_pgn(files, "bronstein")
