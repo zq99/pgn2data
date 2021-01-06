@@ -20,7 +20,7 @@ file_headers_game = ["game_id", "event", "site", "date_played", "round", "white"
                      "winner_loser_elo_diff", "eco", "termination", "time_control", "utc_date",
                      "utc_time", "variant", "ply_count", "date_created", "file_name"]
 
-file_headers_moves = ["game_id", "move_no", "move", "fen", "is_check", "is_check_mate", "is_fifty_moves",
+file_headers_moves = ["game_id", "move_no", "move","notation", "fen", "is_check", "is_check_mate", "is_fifty_moves",
                       "is_fivefold_repetition", "is_game_over", "is_insufficient_material",
                       "w_count", "b_count",
                       "wp_count", "bp_count", "wq_count", "bq_count", "wb_count", "bb_count", "wn_count", "bn_count",
@@ -83,11 +83,11 @@ def __get_game_row_data(game, row_number, file_name):
             __get_time_stamp(), ntpath.basename(file_name)]
 
 
-def __get_move_row_data(move, board, game_id, order_number, sequence):
+def __get_move_row_data(chess_move, board, game_id, order_number, sequence):
     fen_stats = FenStats(board.board_fen())
     white_count, black_count = fen_stats.get_total_piece_count()
     fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
-    return [game_id, order_number, move, board.board_fen(),
+    return [game_id, order_number, chess_move.move,chess_move.notation, board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
             1 if board.is_fifty_moves() else 0,
@@ -179,6 +179,9 @@ piece_fen_count = {
 
 
 class FenStats:
+    """
+    Handles all calculations performed on the fen position
+    """
     # value of all player pieces at start of game
     PIECE_VALUE_TOTAL = 39
 
@@ -302,12 +305,28 @@ def process_file(pgn_file, games_writer, moves_writer):
         sequence = ""
         for move in game.mainline_moves():
             sequence += ("|" if len(sequence) > 0 else "") + str(move)
+            notation = board.san(move)
             board.push(move)
-            moves_writer.writerow(__get_move_row_data(move, board, game_id, order_number, sequence))
+            chess_move = ChessMove(move,notation)
+            moves_writer.writerow(__get_move_row_data(chess_move, board, game_id, order_number, sequence))
             order_number += 1
 
 
+class ChessMove:
+    """
+    data class to hold details of each move
+    move = Move object from python chess library
+    notation = is algebraic notation of the move
+    """
+    def __init__(self, move, notation):
+        self.move = move
+        self.notation = notation
+
+
 def is_valid_pgn_list(file_list):
+    """
+    valid = list cannot be empty and each entry must exist
+    """
     if len(file_list) > 0:
         for file in file_list:
             if not os.path.isfile(file):
@@ -316,7 +335,7 @@ def is_valid_pgn_list(file_list):
     return False
 
 
-def process_pgn(file_list, output_file=None):
+def process_pgn_list(file_list, output_file=None):
     """
     This takes a PGN file and creates two output files
     1. First file contains the game information
@@ -324,12 +343,6 @@ def process_pgn(file_list, output_file=None):
     """
 
     log.info("Starting process..")
-
-    if not is_valid_pgn_list(file_list):
-        log.error("no pgn files found!")
-        return
-
-    output_file = ntpath.basename(file_list[0]) if output_file is None else output_file
 
     file_name_games = output_file + '_game_info.csv'
     file_name_moves = output_file + '_moves.csv'
@@ -352,12 +365,32 @@ def process_pgn(file_list, output_file=None):
     log.info("ending process..")
 
 
-if __name__ == '__main__':
-    files = ["data/pgn/tal_bronstein_1982.pgn"]
-    # files = ["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-    #         "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-    #         "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-    #         "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
-    #        "data/pgn/lichess_manwithavan_2021-01-04.pgn"]
+def convert_pgn(pgn, file_name=None):
+    """
+    main method to convert pgn to csv
+    examples of how to call:
+    (1) convert_pgn("data/pgn/tal_bronstein_1982.pgn","test")
+    (2) convert_pgn("data/pgn/tal_bronstein_1982.pgn")
+    (3) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
+    (4) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
+    """
+    if isinstance(pgn, list):
+        if not is_valid_pgn_list(pgn):
+            log.error("no pgn files found!")
+            return
+        file = ntpath.basename(pgn[0]) if file_name is None else file_name
+        process_pgn_list(pgn, file)
+    elif isinstance(pgn, str):
+        pgn_list = [pgn]
+        file = pgn if file_name is None else file_name
+        process_pgn_list(pgn_list, file)
 
-    process_pgn(files, "bronstein")
+
+if __name__ == '__main__':
+    convert_pgn("data/pgn/tal_bronstein_1982.pgn","test")
+
+# convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+#             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+#             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+#            "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
+#           "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
