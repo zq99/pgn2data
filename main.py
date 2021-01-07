@@ -20,7 +20,7 @@ file_headers_game = ["game_id", "event", "site", "date_played", "round", "white"
                      "winner_loser_elo_diff", "eco", "termination", "time_control", "utc_date",
                      "utc_time", "variant", "ply_count", "date_created", "file_name"]
 
-file_headers_moves = ["game_id", "move_no", "move","notation", "fen", "is_check", "is_check_mate", "is_fifty_moves",
+file_headers_moves = ["game_id", "move_no", "notation", "move", "from_square","to_square", "piece", "fen", "is_check", "is_check_mate", "is_fifty_moves",
                       "is_fivefold_repetition", "is_game_over", "is_insufficient_material",
                       "w_count", "b_count",
                       "wp_count", "bp_count", "wq_count", "bq_count", "wb_count", "bb_count", "wn_count", "bn_count",
@@ -83,11 +83,17 @@ def __get_game_row_data(game, row_number, file_name):
             __get_time_stamp(), ntpath.basename(file_name)]
 
 
-def __get_move_row_data(chess_move, board, game_id, order_number, sequence):
+def __get_move_row_data(player_move, board, game_id, order_number, sequence):
     fen_stats = FenStats(board.board_fen())
     white_count, black_count = fen_stats.get_total_piece_count()
     fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
-    return [game_id, order_number, chess_move.move,chess_move.notation, board.board_fen(),
+    return [game_id, order_number,
+            player_move.notation,
+            player_move.move,
+            player_move.get_from_square(),
+            player_move.get_to_square(),
+            player_move.get_piece(),
+            board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
             1 if board.is_fifty_moves() else 0,
@@ -304,15 +310,15 @@ def process_file(pgn_file, games_writer, moves_writer):
         order_number = 1
         sequence = ""
         for move in game.mainline_moves():
-            sequence += ("|" if len(sequence) > 0 else "") + str(move)
             notation = board.san(move)
             board.push(move)
-            chess_move = ChessMove(move,notation)
-            moves_writer.writerow(__get_move_row_data(chess_move, board, game_id, order_number, sequence))
+            player_move = PlayerMove(move, notation)
+            sequence += ("|" if len(notation) > 0 else "") + str(notation)
+            moves_writer.writerow(__get_move_row_data(player_move, board, game_id, order_number, sequence))
             order_number += 1
 
 
-class ChessMove:
+class PlayerMove:
     """
     data class to hold details of each move
     move = Move object from python chess library
@@ -321,6 +327,25 @@ class ChessMove:
     def __init__(self, move, notation):
         self.move = move
         self.notation = notation
+
+    def get_from_square(self):
+        return str(self.move)[:2] if self.__is_valid_move() else ""
+
+    def get_to_square(self):
+        return str(self.move)[2:] if self.__is_valid_move() else ""
+
+    def __is_valid_move(self):
+        return len(str(self.move)) == 4
+
+    def get_piece(self):
+        if len(self.notation) > 0:
+            if len(self.notation) == 2:
+                return "P"
+            elif self.notation[0].upper() == "O":
+                return "K"
+            else:
+                return self.notation[0].upper()
+        return ""
 
 
 def is_valid_pgn_list(file_list):
