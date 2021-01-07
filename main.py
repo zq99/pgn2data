@@ -20,7 +20,9 @@ file_headers_game = ["game_id", "event", "site", "date_played", "round", "white"
                      "winner_loser_elo_diff", "eco", "termination", "time_control", "utc_date",
                      "utc_time", "variant", "ply_count", "date_created", "file_name"]
 
-file_headers_moves = ["game_id", "move_no", "notation", "move", "from_square","to_square", "piece", "fen", "is_check", "is_check_mate", "is_fifty_moves",
+file_headers_moves = ["game_id", "move_no", "notation", "move", "from_square","to_square",
+                      #"piece",
+                      "fen", "is_check", "is_check_mate", "is_fifty_moves",
                       "is_fivefold_repetition", "is_game_over", "is_insufficient_material",
                       "w_count", "b_count",
                       "wp_count", "bp_count", "wq_count", "bq_count", "wb_count", "bb_count", "wn_count", "bn_count",
@@ -92,7 +94,7 @@ def __get_move_row_data(player_move, board, game_id, order_number, sequence):
             player_move.move,
             player_move.get_from_square(),
             player_move.get_to_square(),
-            player_move.get_piece(),
+           # player_move.get_piece(),
             board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
@@ -337,14 +339,15 @@ class PlayerMove:
     def __is_valid_move(self):
         return len(str(self.move)) == 4
 
-    def get_piece(self):
-        if len(self.notation) > 0:
-            if len(self.notation) == 2:
-                return "P"
-            elif self.notation[0].upper() == "O":
-                return "K"
-            else:
-                return self.notation[0].upper()
+
+    #def get_piece(self):
+    #    if len(self.notation) > 0:
+    #        if len(self.notation) == 2:
+    #            return "P"
+    #        elif self.notation[0].upper() == "O":
+    #            return "K"
+    #        else:
+    #            return self.notation[0].upper()
         return ""
 
 
