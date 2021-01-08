@@ -11,14 +11,14 @@ import os.path
 
 from headers import file_headers_game, file_headers_moves
 from common import open_file
-from process import process_file
+from process import __process_file
 from log_time import TimeProcess
 
 log = logging.getLogger("pgn2data - main")
 logging.basicConfig(level=logging.INFO)
 
 
-def process_pgn_list(file_list, output_file=None):
+def __process_pgn_list(file_list, output_file=None):
     """
     This takes a PGN file and creates two output files
     1. First file contains the game information
@@ -43,12 +43,12 @@ def process_pgn_list(file_list, output_file=None):
     move_export_writer.writerow(file_headers_moves)
 
     for file in file_list:
-        process_file(file, game_export_writer, move_export_writer)
+        __process_file(file, game_export_writer, move_export_writer)
 
     log.info("ending process..")
 
 
-def is_valid_pgn_list(file_list):
+def __is_valid_pgn_list(file_list):
     """
     valid = list cannot be empty and each entry must exist
     """
@@ -72,24 +72,24 @@ def convert_pgn(pgn, file_name=None):
     timer = TimeProcess()
 
     if isinstance(pgn, list):
-        if not is_valid_pgn_list(pgn):
+        if not __is_valid_pgn_list(pgn):
             log.error("no pgn files found!")
             return
         file = ntpath.basename(pgn[0]) if file_name is None else file_name
-        process_pgn_list(pgn, file)
+        __process_pgn_list(pgn, file)
     elif isinstance(pgn, str):
         pgn_list = [pgn]
         file = pgn if file_name is None else file_name
-        process_pgn_list(pgn_list, file)
+        __process_pgn_list(pgn_list, file)
 
     timer.print_time_taken()
 
 
 if __name__ == '__main__':
-    # convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
+     convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
 
-    convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-                 "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-                 "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-                 "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
-                 "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
+    #convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+    #             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+    #             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+    #             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
+     #            "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")

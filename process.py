@@ -14,7 +14,7 @@ log = logging.getLogger("pgn2data - process")
 logging.basicConfig(level=logging.INFO)
 
 
-class PlayerMove:
+class __PlayerMove:
     """
     data class to hold details of each move
     move = Move object from python chess library
@@ -35,7 +35,7 @@ class PlayerMove:
         return len(str(self.move)) == 4
 
 
-def process_file(pgn_file, games_writer, moves_writer):
+def __process_file(pgn_file, games_writer, moves_writer):
     """
     processes on pgn file and then exports game information
     into the game csv file, and the moves into the moves csv file
@@ -46,7 +46,7 @@ def process_file(pgn_file, games_writer, moves_writer):
 
     q = queue.Queue(maxsize=0)
 
-    worker = Thread(target=process_move_queue, args=(q,))
+    worker = Thread(target=__process_move_queue, args=(q,))
     worker.setDaemon(True)
     worker.start()
 
@@ -62,17 +62,17 @@ def process_file(pgn_file, games_writer, moves_writer):
     q.join()
 
 
-def process_move_queue(q):
+def __process_move_queue(q):
     """
     process moves as in the blocking queue
     """
     while True:
         item = q.get()
-        process_move(item[0], item[1], item[2])
+        __process_move(item[0], item[1], item[2])
         q.task_done()
 
 
-def process_move(game_id, game, moves_writer):
+def __process_move(game_id, game, moves_writer):
     """
     process all the moves in a game
     """
@@ -83,7 +83,7 @@ def process_move(game_id, game, moves_writer):
     for move in game.mainline_moves():
         notation = board.san(move)
         board.push(move)
-        player_move = PlayerMove(move, notation)
+        player_move = __PlayerMove(move, notation)
         sequence += ("|" if len(sequence) > 0 else "") + str(notation)
         moves_writer.writerow(__get_move_row_data(player_move, board, game_id, order_number, sequence))
         order_number += 1
@@ -131,7 +131,7 @@ def __get_game_row_data(game, row_number, file_name):
             get_time_stamp(), ntpath.basename(file_name)]
 
 
-fen_row_counts_and_valuation_dict = {}
+__fen_row_counts_and_valuation_dict = {}
 
 
 def __get_move_row_data(player_move, board, game_id, order_number, sequence):
@@ -142,11 +142,11 @@ def __get_move_row_data(player_move, board, game_id, order_number, sequence):
     fen_stats = FenStats(board.board_fen())
     white_count, black_count = fen_stats.get_total_piece_count()
 
-    if fen_stats.fen_position in fen_row_counts_and_valuation_dict:
-        fen_row_valuations = fen_row_counts_and_valuation_dict[fen_stats.fen_position]
+    if fen_stats.fen_position in __fen_row_counts_and_valuation_dict:
+        fen_row_valuations = __fen_row_counts_and_valuation_dict[fen_stats.fen_position]
     else:
         fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
-        fen_row_counts_and_valuation_dict[fen_stats.fen_position] = fen_row_valuations
+        __fen_row_counts_and_valuation_dict[fen_stats.fen_position] = fen_row_valuations
 
     return [game_id, order_number,
             player_move.notation,
