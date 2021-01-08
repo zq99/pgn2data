@@ -1,11 +1,14 @@
 import logging
-import chess
-import uuid
-import chess.pgn
 import ntpath
-from log_time import get_time_stamp
-from fen import FenStats
+import queue
+import uuid
+from threading import Thread
 
+import chess
+import chess.pgn
+
+from fen import FenStats
+from log_time import get_time_stamp
 
 log = logging.getLogger("pgn2data - process")
 logging.basicConfig(level=logging.INFO)
@@ -41,22 +44,49 @@ def process_file(pgn_file, games_writer, moves_writer):
     log.info("Processing file:{}".format(pgn_file))
     pgn = open(pgn_file)
 
+    q = queue.Queue(maxsize=0)
+
+    worker = Thread(target=process_move_queue, args=(q,))
+    worker.setDaemon(True)
+    worker.start()
+
     while True:
         game_id = uuid.uuid4()
         game = chess.pgn.read_game(pgn)
         if game is None:
             break  # end of file
         games_writer.writerow(__get_game_row_data(game, game_id, pgn_file))
-        board = game.board()
-        order_number = 1
-        sequence = ""
-        for move in game.mainline_moves():
-            notation = board.san(move)
-            board.push(move)
-            player_move = PlayerMove(move, notation)
-            sequence += ("|" if len(notation) > 0 else "") + str(notation)
-            moves_writer.writerow(__get_move_row_data(player_move, board, game_id, order_number, sequence))
-            order_number += 1
+
+        q.put((game_id, game, moves_writer))
+
+    q.join()
+
+
+def process_move_queue(q):
+    """
+    process moves as in the blocking queue
+    """
+    while True:
+        item = q.get()
+        process_move(item[0], item[1], item[2])
+        q.task_done()
+
+
+def process_move(game_id, game, moves_writer):
+    """
+    process all the moves in a game
+    """
+
+    board = game.board()
+    order_number = 1
+    sequence = ""
+    for move in game.mainline_moves():
+        notation = board.san(move)
+        board.push(move)
+        player_move = PlayerMove(move, notation)
+        sequence += ("|" if len(sequence) > 0 else "") + str(notation)
+        moves_writer.writerow(__get_move_row_data(player_move, board, game_id, order_number, sequence))
+        order_number += 1
 
 
 def __get_game_row_data(game, row_number, file_name):
@@ -101,6 +131,9 @@ def __get_game_row_data(game, row_number, file_name):
             get_time_stamp(), ntpath.basename(file_name)]
 
 
+fen_row_counts_and_valuation_dict = {}
+
+
 def __get_move_row_data(player_move, board, game_id, order_number, sequence):
     """
     process each move in a game
@@ -108,7 +141,12 @@ def __get_move_row_data(player_move, board, game_id, order_number, sequence):
 
     fen_stats = FenStats(board.board_fen())
     white_count, black_count = fen_stats.get_total_piece_count()
-    fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
+
+    if fen_stats.fen_position in fen_row_counts_and_valuation_dict:
+        fen_row_valuations = fen_row_counts_and_valuation_dict[fen_stats.fen_position]
+    else:
+        fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
+        fen_row_counts_and_valuation_dict[fen_stats.fen_position] = fen_row_valuations
 
     return [game_id, order_number,
             player_move.notation,
