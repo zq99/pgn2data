@@ -3,6 +3,7 @@ import ntpath
 import queue
 import uuid
 from threading import Thread
+from board_ref import BoardPieces
 
 import chess
 import chess.pgn
@@ -24,6 +25,7 @@ class __PlayerMove:
     def __init__(self, move, notation):
         self.move = move
         self.notation = notation
+        self.__piece = ""
 
     def get_from_square(self):
         return str(self.move)[:2] if self.__is_valid_move() else ""
@@ -33,6 +35,13 @@ class __PlayerMove:
 
     def __is_valid_move(self):
         return len(str(self.move)) == 4
+
+    def set_piece(self, piece):
+        self.__piece = piece
+
+    def get_piece(self):
+        return self.__piece
+
 
 
 def __process_file(pgn_file, games_writer, moves_writer):
@@ -76,7 +85,7 @@ def __process_move(game_id, game, moves_writer):
     """
     process all the moves in a game
     """
-
+    board_pieces = BoardPieces()
     board = game.board()
     order_number = 1
     sequence = ""
@@ -84,6 +93,9 @@ def __process_move(game_id, game, moves_writer):
         notation = board.san(move)
         board.push(move)
         player_move = __PlayerMove(move, notation)
+        board_pieces.track_move(player_move.get_from_square(),player_move.get_to_square())
+        piece = board_pieces.get_piece_at_square(player_move.get_from_square())
+        player_move.set_piece(piece)
         sequence += ("|" if len(sequence) > 0 else "") + str(notation)
         moves_writer.writerow(__get_move_row_data(player_move, board, game_id, order_number, sequence))
         order_number += 1
@@ -153,7 +165,7 @@ def __get_move_row_data(player_move, board, game_id, order_number, sequence):
             player_move.move,
             player_move.get_from_square(),
             player_move.get_to_square(),
-            # player_move.get_piece(),
+            player_move.get_piece(),
             board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,

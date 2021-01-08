@@ -12,7 +12,7 @@ class FenStats:
     """
     Handles all calculations performed on the fen position
     """
-    # value of all player pieces at start of game
+    # value of all player board at start of game
     PIECE_VALUE_TOTAL = 39
 
     def __init__(self, fen):
@@ -28,7 +28,7 @@ class FenStats:
 
     def get_total_piece_count(self):
         """
-        returns a tuple with the total number of white and black pieces
+        returns a tuple with the total number of white and black board
         """
         pieces_to_count = [chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.KING]
         white_total = 0
@@ -42,7 +42,7 @@ class FenStats:
         """
         the parameters "piece" and "color" are constants are from the python chess library
         color is either: chess.WHITE or chess.BLACK
-        pieces: chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK
+        board: chess.PAWN, chess.QUEEN, chess.KNIGHT, chess.BISHOP, chess.ROOK
         """
         if not self.__is_valid_piece(piece):
             log.error("invalid piece parameter {}".format(str(piece)))
@@ -57,8 +57,8 @@ class FenStats:
     def get_captured_score(self, color):
         """
         color is the color of the player you want the score for.
-        so if color= white, you need to calculate how how many black pieces captured and the total value
-        of these pieces
+        so if color= white, you need to calculate how how many black board captured and the total value
+        of these board
         """
         if not self.__is_valid_color(color):
             log.error("invalid color parameter {}".format(str(color)))
@@ -86,8 +86,8 @@ class FenStats:
 
     def get_piece_count_and_value_for_fen_row(self, row):
         """
-        Returns the number of white and black pieces for a specified row in the the fen string (includes king)
-        Also returns the total valuations for the white and black pieces (excludes king)
+        Returns the number of white and black board for a specified row in the the fen string (includes king)
+        Also returns the total valuations for the white and black board (excludes king)
         row = fen row number between 1 and 8
         color = chess.WHITE or chess.BLACK
         """
