@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import chess
 
@@ -46,13 +46,21 @@ piece_fen_count = {
 def full_range(start, stop): return range(start, stop + 1)
 
 
-def get_time_stamp():
-    return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-
-
 def open_file(file_name):
     try:
         return open(file_name, mode='w', newline='', encoding="utf-8")
     except PermissionError:
         log.error("Could not access the file: {}".format(file_name))
         return None
+
+
+def seconds_to_text(secs):
+    days = secs // 86400
+    hours = (secs - days * 86400) // 3600
+    minutes = (secs - days * 86400 - hours * 3600) // 60
+    seconds = secs - days * 86400 - hours * 3600 - minutes * 60
+    result = ("{0} day{1}, ".format(days, "s" if days != 1 else "") if days else "") + \
+             ("{0} hour{1}, ".format(hours, "s" if hours != 1 else "") if hours else "") + \
+             ("{0} minute{1}, ".format(minutes, "s" if minutes != 1 else "") if minutes else "") + \
+             ("{0} second{1}, ".format(seconds, "s" if seconds != 1 else "") if seconds else "")
+    return result

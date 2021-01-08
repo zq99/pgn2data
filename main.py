@@ -12,6 +12,7 @@ import os.path
 from headers import file_headers_game, file_headers_moves
 from common import open_file
 from process import process_file
+from log_time import TimeProcess
 
 log = logging.getLogger("pgn2data - main")
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +69,8 @@ def convert_pgn(pgn, file_name=None):
     (3) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
     (4) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
     """
+    timer = TimeProcess()
+
     if isinstance(pgn, list):
         if not is_valid_pgn_list(pgn):
             log.error("no pgn files found!")
@@ -79,12 +82,14 @@ def convert_pgn(pgn, file_name=None):
         file = pgn if file_name is None else file_name
         process_pgn_list(pgn_list, file)
 
+    timer.print_time_taken()
+
 
 if __name__ == '__main__':
-    convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
+    # convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
 
-# convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-#             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-#             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-#             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
-#             "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
+    convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+                 "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+                 "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+                 "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
+                 "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")

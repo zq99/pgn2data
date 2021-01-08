@@ -3,7 +3,7 @@ import chess
 import uuid
 import chess.pgn
 import ntpath
-from common import get_time_stamp
+from log_time import get_time_stamp
 from fen import FenStats
 
 
@@ -63,6 +63,7 @@ def __get_game_row_data(game, row_number, file_name):
     """
     takes a "game" object and converts it into a list with the data for each column
     """
+
     winner = __get_winner(game)
     loser = game.headers["White"] if winner == game.headers["Black"] else (
         game.headers["Black"] if winner == game.headers["White"] else winner)
@@ -72,6 +73,7 @@ def __get_game_row_data(game, row_number, file_name):
         game.headers["BlackElo"] if winner == game.headers["White"] else "")
     winner_loser_elo_diff = 0 if not (str(winner_elo).isnumeric() and str(loser_elo).isnumeric()) else int(
         winner_elo) - int(loser_elo)
+
     return [row_number,
             game.headers["Event"] if "Event" in game.headers else "",
             game.headers["Site"] if "Site" in game.headers else "",
@@ -100,9 +102,14 @@ def __get_game_row_data(game, row_number, file_name):
 
 
 def __get_move_row_data(player_move, board, game_id, order_number, sequence):
+    """
+    process each move in a game
+    """
+
     fen_stats = FenStats(board.board_fen())
     white_count, black_count = fen_stats.get_total_piece_count()
     fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
+
     return [game_id, order_number,
             player_move.notation,
             player_move.move,
