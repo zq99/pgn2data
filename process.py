@@ -159,17 +159,20 @@ def __get_move_row_data(player_move, board, game_id, game, order_number, sequenc
         fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
         __fen_row_counts_and_valuation_dict[fen_stats.fen_position] = fen_row_valuations
 
-    is_white_move  = not __is_number_even(order_number)
+    is_white_move = not __is_number_even(order_number)
+
+    player_name = game.headers["White"] if is_white_move else game.headers["Black"]
+    player_colour = "White" if is_white_move else "Black"
 
     return [game_id,
             order_number,
-            game.headers["White"] if is_white_move else game.headers["Black"],
+            player_name,
             player_move.notation,
             player_move.move,
             player_move.get_from_square(),
             player_move.get_to_square(),
             player_move.get_piece().upper(),
-            "White" if is_white_move else "Black",
+            player_colour,
             board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,

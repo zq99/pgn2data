@@ -110,8 +110,8 @@ def convert_pgn(pgn, file_name=None):
 if __name__ == '__main__':
     convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
 
-# convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-#             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-#             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+#  convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+#              "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+#              "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
 #             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
 #            "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
