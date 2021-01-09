@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 
 class BoardPieces:
     """
-    This is used to track where the board are during a game
+    This is used to track where the board pieces are during a game
     """
 
     def __init__(self):
