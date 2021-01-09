@@ -13,6 +13,7 @@ from headers import file_headers_game, file_headers_moves
 from common import open_file
 from process import __process_file
 from log_time import TimeProcess
+from result import ResultFile, Result
 
 log = logging.getLogger("pgn2data - main")
 logging.basicConfig(level=logging.INFO)
@@ -45,7 +46,28 @@ def __process_pgn_list(file_list, output_file=None):
     for file in file_list:
         __process_file(file, game_export_writer, move_export_writer)
 
+    # return a result object to indicate outcome
+
+    result = get_result_of_output_files(file_name_games, file_name_moves)
     log.info("ending process..")
+
+    return result
+
+
+def get_result_of_output_files(game_file_name, moves_file_name):
+    is_games_file_exists = os.path.isfile(game_file_name)
+    is_moves_file_exists = os.path.isfile(moves_file_name)
+    is_files_exists = is_games_file_exists and is_moves_file_exists
+    game_size = __get_size(game_file_name) if is_games_file_exists else 0
+    move_size = __get_size(moves_file_name) if is_moves_file_exists else 0
+    game_result = ResultFile(game_file_name, game_size)
+    move_result = ResultFile(moves_file_name, move_size)
+    return Result(is_files_exists, game_result, move_result)
+
+
+def __get_size(filename):
+    st = os.stat(filename)
+    return st.st_size
 
 
 def __is_valid_pgn_list(file_list):
@@ -86,14 +108,10 @@ def convert_pgn(pgn, file_name=None):
 
 
 if __name__ == '__main__':
-     convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
+    convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
 
-    #convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-    #             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-    #             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-    #             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
-     #            "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
-
-
-
-
+# convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+#             "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+#             "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+#             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
+#            "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")

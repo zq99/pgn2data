@@ -43,7 +43,6 @@ class __PlayerMove:
         return self.__piece
 
 
-
 def __process_file(pgn_file, games_writer, moves_writer):
     """
     processes on pgn file and then exports game information
@@ -73,7 +72,7 @@ def __process_file(pgn_file, games_writer, moves_writer):
 
 def __process_move_queue(q):
     """
-    process moves as in the blocking queue
+    process moves in the blocking queue as they are added
     """
     while True:
         item = q.get()
@@ -93,11 +92,11 @@ def __process_move(game_id, game, moves_writer):
         notation = board.san(move)
         board.push(move)
         player_move = __PlayerMove(move, notation)
-        board_pieces.track_move(player_move.get_from_square(),player_move.get_to_square())
+        board_pieces.track_move(player_move.get_from_square(), player_move.get_to_square())
         piece = board_pieces.get_piece_at_square(player_move.get_from_square())
         player_move.set_piece(piece)
         sequence += ("|" if len(sequence) > 0 else "") + str(notation)
-        moves_writer.writerow(__get_move_row_data(player_move, board, game_id, order_number, sequence))
+        moves_writer.writerow(__get_move_row_data(player_move, board, game_id, game, order_number, sequence))
         order_number += 1
 
 
@@ -146,7 +145,7 @@ def __get_game_row_data(game, row_number, file_name):
 __fen_row_counts_and_valuation_dict = {}
 
 
-def __get_move_row_data(player_move, board, game_id, order_number, sequence):
+def __get_move_row_data(player_move, board, game_id, game, order_number, sequence):
     """
     process each move in a game
     """
@@ -160,12 +159,17 @@ def __get_move_row_data(player_move, board, game_id, order_number, sequence):
         fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
         __fen_row_counts_and_valuation_dict[fen_stats.fen_position] = fen_row_valuations
 
-    return [game_id, order_number,
+    is_white_move  = not __is_number_even(order_number)
+
+    return [game_id,
+            order_number,
+            game.headers["White"] if is_white_move else game.headers["Black"],
             player_move.notation,
             player_move.move,
             player_move.get_from_square(),
             player_move.get_to_square(),
-            player_move.get_piece(),
+            player_move.get_piece().upper(),
+            "White" if is_white_move else "Black",
             board.board_fen(),
             1 if board.is_check() else 0,
             1 if board.is_checkmate() else 0,
@@ -196,6 +200,10 @@ def __get_move_row_data(player_move, board, game_id, order_number, sequence):
             fen_row_valuations[0][3], fen_row_valuations[1][3], fen_row_valuations[2][3], fen_row_valuations[3][3],
             fen_row_valuations[4][3], fen_row_valuations[5][3], fen_row_valuations[6][3], fen_row_valuations[7][3],
             sequence]
+
+
+def __is_number_even(number):
+    return number % 2 == 0
 
 
 def __get_winner(game):
