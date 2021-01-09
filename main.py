@@ -49,6 +49,7 @@ def __process_pgn_list(file_list, output_file=None):
     # return a result object to indicate outcome
 
     result = get_result_of_output_files(file_name_games, file_name_moves)
+
     log.info("ending process..")
 
     return result
@@ -92,23 +93,26 @@ def convert_pgn(pgn, file_name=None):
     (4) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
     """
     timer = TimeProcess()
-
+    result = Result.get_empty_result()
     if isinstance(pgn, list):
         if not __is_valid_pgn_list(pgn):
             log.error("no pgn files found!")
             return
         file = ntpath.basename(pgn[0]) if file_name is None else file_name
-        __process_pgn_list(pgn, file)
+        result = __process_pgn_list(pgn, file)
     elif isinstance(pgn, str):
         pgn_list = [pgn]
         file = pgn if file_name is None else file_name
-        __process_pgn_list(pgn_list, file)
-
+        result = __process_pgn_list(pgn_list, file)
     timer.print_time_taken()
+    return result
 
 
 if __name__ == '__main__':
-    convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
+    r = convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
+    print(r.is_complete)
+    print(r.games_file.size)
+    print(r.moves_file.size)
 
 #  convert_pgn(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
 #              "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
