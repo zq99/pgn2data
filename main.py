@@ -101,6 +101,9 @@ def convert_pgn(pgn, file_name=None):
         file = ntpath.basename(pgn[0]) if file_name is None else file_name
         result = __process_pgn_list(pgn, file)
     elif isinstance(pgn, str):
+        if not os.path.isfile(pgn):
+            log.error("no pgn files found!")
+            return
         pgn_list = [pgn]
         file = pgn if file_name is None else file_name
         result = __process_pgn_list(pgn_list, file)
