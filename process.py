@@ -28,13 +28,13 @@ class __PlayerMove:
         self.__piece = ""
 
     def get_from_square(self):
-        return str(self.move)[:2] if self.__is_valid_move() else ""
+        return str(self.move)[0:2] if self.__is_valid_move() else ""
 
     def get_to_square(self):
-        return str(self.move)[2:] if self.__is_valid_move() else ""
+        return str(self.move)[2:4] if self.__is_valid_move() else ""
 
     def __is_valid_move(self):
-        return len(str(self.move)) == 4
+        return len(str(self.move)) >= 4
 
     def set_piece(self, piece):
         self.__piece = piece
