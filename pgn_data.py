@@ -19,7 +19,7 @@ log = logging.getLogger("pgn2data - pgn_data class")
 logging.basicConfig(level=logging.INFO)
 
 
-class PgnData:
+class PGNData:
     """
     Main class to handle the library's methods
     """
