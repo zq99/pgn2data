@@ -56,14 +56,20 @@ def __process_pgn_list(file_list, output_file=None):
 
 
 def get_result_of_output_files(game_file_name, moves_file_name):
-    is_games_file_exists = os.path.isfile(game_file_name)
-    is_moves_file_exists = os.path.isfile(moves_file_name)
-    is_files_exists = is_games_file_exists and is_moves_file_exists
-    game_size = __get_size(game_file_name) if is_games_file_exists else 0
-    move_size = __get_size(moves_file_name) if is_moves_file_exists else 0
-    game_result = ResultFile(game_file_name, game_size)
-    move_result = ResultFile(moves_file_name, move_size)
-    return Result(is_files_exists, game_result, move_result)
+    result = Result.get_empty_result()
+    try:
+        is_games_file_exists = os.path.isfile(game_file_name)
+        is_moves_file_exists = os.path.isfile(moves_file_name)
+        is_files_exists = is_games_file_exists and is_moves_file_exists
+        game_size = __get_size(game_file_name) if is_games_file_exists else 0
+        move_size = __get_size(moves_file_name) if is_moves_file_exists else 0
+        game_result = ResultFile(game_file_name, game_size)
+        move_result = ResultFile(moves_file_name, move_size)
+        result = Result(is_files_exists, game_result, move_result)
+    except Exception as e:
+        log.error(e)
+        pass
+    return result
 
 
 def __get_size(filename):
@@ -112,8 +118,8 @@ def convert_pgn(pgn, file_name=None):
 
 
 if __name__ == '__main__':
-    # r = convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
-     r = convert_pgn("data/pgn/lichess_DrNykterstein_2021-01-04.pgn","test2")
+     r = convert_pgn("data/pgn/tal_bronstein_1982.pgn", "test")
+    # r = convert_pgn("data/pgn/lichess_DrNykterstein_2021-01-04.pgn","test2")
     #    print(r.is_complete)
     #    print(r.games_file.size)
     #    print(r.moves_file.size)
