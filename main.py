@@ -6,7 +6,7 @@ lichess.org/games/export/[user_name]?since=1525132800000
 
 import logging
 
-from pgn_data import PGNData
+from converter.pgn_data import PGNData
 
 log = logging.getLogger("pgn2data - main")
 logging.basicConfig(level=logging.INFO)
@@ -24,5 +24,6 @@ if __name__ == '__main__':
     #             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
     #             "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
 
-    pgn_data = PGNData("data/pgn/tal_bronstein_1982.pgn", "testyyy")
+    pgn_data = PGNData(["data/pgn/tal_bronstein_1982.pgn"])
     result = pgn_data.export()
+    result.print_summary()

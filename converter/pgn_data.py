@@ -9,11 +9,11 @@ import logging
 import ntpath
 import os.path
 
-from headers import file_headers_game, file_headers_moves
-from common import open_file
-from process import process_file
-from log_time import TimeProcess
-from result import ResultFile, Result
+from converter.headers import file_headers_game, file_headers_moves
+from common.common import open_file
+from converter.process import Process
+from common.log_time import TimeProcess
+from converter.result import ResultFile, Result
 
 log = logging.getLogger("pgn2data - pgn_data class")
 logging.basicConfig(level=logging.INFO)
@@ -43,17 +43,21 @@ class PGNData:
             if not self.__is_valid_pgn_list(self.pgn):
                 log.error("no pgn files found!")
                 return
-            file = ntpath.basename(self.pgn[0]) if self.file_name is None else self.file_name
+            file = self.__create_file_name(self.pgn[0]) if self.file_name is None else self.file_name
             result = self.__process_pgn_list(self.pgn, file)
         elif isinstance(self.pgn, str):
             if not os.path.isfile(self.pgn):
                 log.error("no pgn files found!")
                 return
             pgn_list = [self.pgn]
-            file = self.pgn if self.file_name is None else self.file_name
+            file = self.__create_file_name(self.pgn) if self.file_name is None else self.file_name
             result = self.__process_pgn_list(pgn_list, file)
         timer.print_time_taken()
         return result
+
+    @staticmethod
+    def __create_file_name(file_path):
+        return ntpath.basename(file_path).replace(".pgn", "")
 
     def __process_pgn_list(self, file_list, output_file=None):
         """
@@ -80,7 +84,8 @@ class PGNData:
         move_export_writer.writerow(file_headers_moves)
 
         for file in file_list:
-            process_file(file, game_export_writer, move_export_writer)
+            process = Process(file, game_export_writer, move_export_writer)
+            process.generate()
 
         # return a result object to indicate outcome
         result = self.__get_result_of_output_files(file_name_games, file_name_moves)

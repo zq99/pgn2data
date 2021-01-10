@@ -2,7 +2,7 @@ from collections import Counter
 import chess
 import logging
 
-from common import piece_fen_letters, piece_fen_count, piece_fen_value, full_range, piece_fen_letter_to_chess_piece
+from common.common import piece_fen_letters, piece_fen_count, piece_fen_value, full_range, piece_fen_letter_to_chess_piece
 
 log = logging.getLogger("pgn2data - fen")
 logging.basicConfig(level=logging.INFO)

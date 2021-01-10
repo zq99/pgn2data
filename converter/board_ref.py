@@ -1,5 +1,5 @@
 import logging
-from common import piece_fen_letter_to_chess_piece
+from common.common import piece_fen_letter_to_chess_piece
 
 log = logging.getLogger("pgn2data - board ref")
 logging.basicConfig(level=logging.INFO)

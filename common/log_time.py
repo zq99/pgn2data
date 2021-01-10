@@ -1,5 +1,5 @@
 from timeit import default_timer as timer
-from common import seconds_to_text
+from common.common import seconds_to_text
 from datetime import datetime
 import logging
 
