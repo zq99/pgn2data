@@ -18,8 +18,8 @@ class Result:
         return a summary to console
         """
         print("is complete: {}".format(str(self.is_complete)))
-        print("games file: {} size: {}".format(self.games_file.name, self.games_file.size))
-        print("moves file: {} size: {}".format(self.moves_file.name, self.moves_file.size))
+        print("games file: {} | size: {}".format(self.games_file.name, self.games_file.size))
+        print("moves file: {} | size: {}".format(self.moves_file.name, self.moves_file.size))
 
 
 class ResultFile:
