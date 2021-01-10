@@ -43,7 +43,7 @@ class __PlayerMove:
         return self.__piece
 
 
-def __process_file(pgn_file, games_writer, moves_writer):
+def process_file(pgn_file, games_writer, moves_writer):
     """
     processes on pgn file and then exports game information
     into the game csv file, and the moves into the moves csv file
