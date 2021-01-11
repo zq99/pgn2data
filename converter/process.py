@@ -59,6 +59,8 @@ class Process:
         into the game csv file, and the moves into the moves csv file
         """
 
+        print("hello there")
+
         log.info("Processing file:{}".format(self.pgn_file))
         pgn = open(self.pgn_file)
 
@@ -68,12 +70,11 @@ class Process:
         worker.start()
 
         while True:
-            game_id = uuid.uuid4()
+            game_id = str(uuid.uuid4())
             game = chess.pgn.read_game(pgn)
             if game is None:
                 break  # end of file
             self.games_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
-
             q.put((game_id, game, self.moves_writer))
         q.join()
 

@@ -24,6 +24,8 @@ if __name__ == '__main__':
     #             "data/pgn/lichess_DrNykterstein_2021-01-04.pgn",
     #             "data/pgn/lichess_manwithavan_2021-01-04.pgn"], "carlsen")
 
+    import logging
+
     pgn_data = PGNData(["data/pgn/tal_bronstein_1982.pgn"])
     result = pgn_data.export()
     result.print_summary()
