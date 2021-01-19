@@ -42,13 +42,13 @@ class PGNData:
         if isinstance(self.pgn, list):
             if not self.__is_valid_pgn_list(self.pgn):
                 log.error("no pgn files found!")
-                return
+                return result
             file = self.__create_file_name(self.pgn[0]) if self.file_name is None else self.file_name
             result = self.__process_pgn_list(self.pgn, file)
         elif isinstance(self.pgn, str):
             if not os.path.isfile(self.pgn):
                 log.error("no pgn files found!")
-                return
+                return result
             pgn_list = [self.pgn]
             file = self.__create_file_name(self.pgn) if self.file_name is None else self.file_name
             result = self.__process_pgn_list(pgn_list, file)
@@ -68,6 +68,8 @@ class PGNData:
 
         log.info("Starting process..")
 
+        result = Result.get_empty_result()
+
         file_name_games = output_file + '_game_info.csv'
         file_name_moves = output_file + '_moves.csv'
 
@@ -76,7 +78,7 @@ class PGNData:
 
         if file_games is None or file_moves is None:
             log.info("No data exported!")
-            return
+            return result
 
         game_export_writer = csv.writer(file_games, delimiter=',')
         game_export_writer.writerow(file_headers_game)

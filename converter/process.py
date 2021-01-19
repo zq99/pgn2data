@@ -75,11 +75,14 @@ class Process:
             if game is None:
                 break  # end of file
             # self.games_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
+            dir(self.games_writer)
+            x = self.__get_game_row_data(game, game_id, self.pgn_file)
+            print("x===" + str(x))
             self.games_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
+            self.games_writer.flush()
             q.put((game_id, game, self.moves_writer))
 
         q.join()
-
 
     def __process_move_queue(self, q):
         """
@@ -89,7 +92,6 @@ class Process:
             item = q.get()
             self.__process_move(item[0], item[1], item[2])
             q.task_done()
-
 
     def __process_move(self, game_id, game, moves_writer):
         """
@@ -109,7 +111,6 @@ class Process:
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
             moves_writer.writerow(self.__get_move_row_data(player_move, board, game_id, game, order_number, sequence))
             order_number += 1
-
 
     def __get_game_row_data(self, game, row_number, file_name):
         """
@@ -152,9 +153,7 @@ class Process:
                 game.headers["PlyCount"] if "PlyCount" in game.headers else "",
                 get_time_stamp(), ntpath.basename(file_name)]
 
-
     __fen_row_counts_and_valuation_dict = {}
-
 
     def __get_move_row_data(self, player_move, board, game_id, game, order_number, sequence):
         """
@@ -215,11 +214,9 @@ class Process:
                 fen_row_valuations[4][3], fen_row_valuations[5][3], fen_row_valuations[6][3], fen_row_valuations[7][3],
                 sequence]
 
-
     @staticmethod
     def __is_number_even(number):
         return number % 2 == 0
-
 
     @staticmethod
     def __get_winner(game):
