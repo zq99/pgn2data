@@ -74,20 +74,18 @@ class Process:
         move_writer = csv.writer(self.file_moves, delimiter=',')
         move_writer.writerow(file_headers_moves)
 
-        with self.file_games:
-            game_writer = csv.writer(self.file_games, delimiter=',')
-            game_writer.writerow(file_headers_game)
-            while True:
-                game_id = str(uuid.uuid4())
-                game = chess.pgn.read_game(pgn)
-                if game is None:
-                    break  # end of file
+        game_writer = csv.writer(self.file_games, delimiter=',')
+        game_writer.writerow(file_headers_game)
+        while True:
+            game_id = str(uuid.uuid4())
+            game = chess.pgn.read_game(pgn)
+            if game is None:
+                break  # end of file
 
-                game_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
-                q.put((game_id, game, move_writer))
+            game_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
+            q.put((game_id, game, move_writer))
 
         q.join()
-        self.file_moves.close()
 
     def __process_move_queue(self, q):
         """

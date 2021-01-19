@@ -82,6 +82,9 @@ class PGNData:
             process = Process(file, file_games, file_moves)
             process.generate()
 
+        file_games.close()
+        file_moves.close()
+
         # return a result object to indicate outcome
         result = self.__get_result_of_output_files(file_name_games, file_name_moves)
 
