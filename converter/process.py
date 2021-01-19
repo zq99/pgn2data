@@ -11,6 +11,10 @@ import chess.pgn
 from converter.fen import FenStats
 from common.log_time import get_time_stamp
 
+import csv
+
+from converter.headers import file_headers_game, file_headers_moves
+
 log = logging.getLogger("pgn2data - process")
 logging.basicConfig(level=logging.INFO)
 
@@ -48,18 +52,16 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, games_writer, moves_writer):
+    def __init__(self, pgn_file, file_games, file_moves):
         self.pgn_file = pgn_file
-        self.games_writer = games_writer
-        self.moves_writer = moves_writer
+        self.file_games = file_games
+        self.file_moves = file_moves
 
     def generate(self):
         """
         processes on pgn file and then exports game information
         into the game csv file, and the moves into the moves csv file
         """
-
-        print("hello there")
 
         log.info("Processing file:{}".format(self.pgn_file))
         pgn = open(self.pgn_file)
@@ -69,20 +71,23 @@ class Process:
         worker.setDaemon(True)
         worker.start()
 
-        while True:
-            game_id = str(uuid.uuid4())
-            game = chess.pgn.read_game(pgn)
-            if game is None:
-                break  # end of file
-            # self.games_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
-            dir(self.games_writer)
-            x = self.__get_game_row_data(game, game_id, self.pgn_file)
-            print("x===" + str(x))
-            self.games_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
-            self.games_writer.flush()
-            q.put((game_id, game, self.moves_writer))
+        move_writer = csv.writer(self.file_moves, delimiter=',')
+        move_writer.writerow(file_headers_moves)
+
+        with self.file_games:
+            game_writer = csv.writer(self.file_games, delimiter=',')
+            game_writer.writerow(file_headers_game)
+            while True:
+                game_id = str(uuid.uuid4())
+                game = chess.pgn.read_game(pgn)
+                if game is None:
+                    break  # end of file
+
+                game_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
+                q.put((game_id, game, move_writer))
 
         q.join()
+        self.file_moves.close()
 
     def __process_move_queue(self, q):
         """

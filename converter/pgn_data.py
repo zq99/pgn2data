@@ -4,15 +4,13 @@ lichess.org/games/export/nykterstein
 lichess.org/games/export/[user_name]?since=1525132800000
 """
 
-import csv
 import logging
 import ntpath
 import os.path
 
-from converter.headers import file_headers_game, file_headers_moves
 from common.common import open_file
-from converter.process import Process
 from common.log_time import TimeProcess
+from converter.process import Process
 from converter.result import ResultFile, Result
 
 log = logging.getLogger("pgn2data - pgn_data class")
@@ -80,13 +78,8 @@ class PGNData:
             log.info("No data exported!")
             return result
 
-        game_export_writer = csv.writer(file_games, delimiter=',')
-        game_export_writer.writerow(file_headers_game)
-        move_export_writer = csv.writer(file_moves, delimiter=',')
-        move_export_writer.writerow(file_headers_moves)
-
         for file in file_list:
-            process = Process(file, game_export_writer, move_export_writer)
+            process = Process(file, file_games, file_moves)
             process.generate()
 
         # return a result object to indicate outcome

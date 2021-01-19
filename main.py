@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
     import logging
 
-    pgn_data = PGNData(["data/pgn/spassky_petrosian_1966.pgn"])
-   # pgn_data = PGNData(["data/pgn/tal_bronstein_1982.pgn"])
+    #pgn_data = PGNData(["data/pgn/spassky_petrosian_1966.pgn"])
+    pgn_data = PGNData(["data/pgn/tal_bronstein_1982.pgn"])
 
     #pgn_data = PGNData(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
                        # "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
