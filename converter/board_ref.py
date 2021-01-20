@@ -35,6 +35,7 @@ class BoardPieces:
         """
         if self.__is_valid_move(from_square, to_square):
             self.board[to_square] = self.board[from_square]
+            self.board[from_square] = ''
         else:
             log.error("invalid piece tracking from == {} and to == {}".format(from_square, to_square))
 

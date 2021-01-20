@@ -11,7 +11,7 @@ classifiers = [
 setup(
     name='pgn2data',
     version='0.0.1',
-    packages=['converter', 'common', 'tests'],
+    packages=['converter', 'common', 'testing'],
     url='',
     classifiers=classifiers,
     license='GPL2',
