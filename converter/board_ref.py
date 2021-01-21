@@ -3,6 +3,7 @@ from common.common import piece_fen_letter_to_chess_piece
 
 log = logging.getLogger("pgn2data - board ref")
 logging.basicConfig(level=logging.INFO)
+import copy
 
 
 class BoardPieces:
@@ -34,7 +35,7 @@ class BoardPieces:
         these inputs are string representations e.g "A1" or "H8
         """
         if self.__is_valid_move(from_square, to_square):
-            self.board[to_square] = self.board[from_square]
+            self.board[to_square] = copy.deepcopy(self.board[from_square])
             self.board[from_square] = ''
         else:
             log.error("invalid piece tracking from == {} and to == {}".format(from_square, to_square))
