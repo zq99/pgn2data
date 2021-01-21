@@ -34,6 +34,8 @@ class BoardPieces:
         """
         these inputs are string representations e.g "A1" or "H8
         """
+
+        # TODO NEEDS TO HANDLE CASTLING
         if self.__is_valid_move(from_square, to_square):
             self.board[to_square] = copy.deepcopy(self.board[from_square])
             self.board[from_square] = ''
