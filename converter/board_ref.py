@@ -50,6 +50,12 @@ class BoardPieces:
         these inputs are string representations e.g "A1" or "H8
         """
 
+        #TODO
+
+        #Atomic
+        #Chess960
+        #Crazyhouse
+
         if self.__is_valid_move(from_square, to_square):
             move_type = self.__get_move_type(from_square, to_square)
             self.board[to_square] = self.board[from_square]
@@ -75,7 +81,7 @@ class BoardPieces:
 
     def __get_move_type(self, from_sq, to_sq):
         """
-        check valid castling move
+        check what kind of move was made
         """
         p = self.get_piece_at_square(from_sq)
         is_king = p.upper() == "K"
