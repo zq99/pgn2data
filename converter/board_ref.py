@@ -1,9 +1,24 @@
 import logging
+from enum import Enum
+
 from common.common import piece_fen_letter_to_chess_piece
 
 log = logging.getLogger("pgn2data - board ref")
 logging.basicConfig(level=logging.INFO)
-import copy
+
+
+class MoveType(Enum):
+    white_kingside = 1
+    white_queenside = 2
+    black_kingside = 3
+    black_queenside = 4
+    regular = 5
+
+
+class PieceColor(Enum):
+    white = 1
+    black = 2
+    unknown = 3
 
 
 class BoardPieces:
@@ -35,15 +50,45 @@ class BoardPieces:
         these inputs are string representations e.g "A1" or "H8
         """
 
-        # TODO NEEDS TO HANDLE CASTLING
         if self.__is_valid_move(from_square, to_square):
-            self.board[to_square] = copy.deepcopy(self.board[from_square])
+            move_type = self.__is_castling(from_square, to_square)
+            self.board[to_square] = self.board[from_square]
             self.board[from_square] = ''
+            if move_type == MoveType.white_kingside:
+                self.board["f1"] = self.board["h1"]
+                self.board["h1"] = ""
+            elif move_type == MoveType.white_queenside:
+                self.board["d1"] = self.board["a1"]
+                self.board["a1"] = ""
+            elif move_type == MoveType.black_kingside:
+                self.board["f8"] = self.board["h8"]
+                self.board["h8"] = ""
+            elif move_type == MoveType.black_queenside:
+                self.board["d8"] = self.board["a8"]
+                self.board["a8"] = ""
+
         else:
             log.error("invalid piece tracking from == {} and to == {}".format(from_square, to_square))
 
     def __is_valid_move(self, from_square, to_square):
         return from_square in self.board and to_square in self.board
+
+    def __is_castling(self, from_sq, to_sq):
+        """
+        check valid castling move
+        """
+        p = self.get_piece_at_square(from_sq)
+        is_king = p.upper() == "K"
+        if is_king:
+            if from_sq == "e1" and to_sq == "g1":
+                return MoveType.white_kingside
+            elif from_sq == "e8" and to_sq == "g8":
+                return MoveType.black_kingside
+            elif from_sq == "e1" and to_sq == "c1":
+                return MoveType.white_queenside
+            elif from_sq == "e8" and to_sq == "c8":
+                return MoveType.black_queenside
+        return MoveType.regular
 
     @staticmethod
     def __is_valid_piece_name(piece):
