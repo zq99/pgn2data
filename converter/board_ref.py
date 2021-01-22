@@ -51,7 +51,7 @@ class BoardPieces:
         """
 
         if self.__is_valid_move(from_square, to_square):
-            move_type = self.__is_castling(from_square, to_square)
+            move_type = self.__get_move_type(from_square, to_square)
             self.board[to_square] = self.board[from_square]
             self.board[from_square] = ''
             if move_type == MoveType.white_kingside:
@@ -73,7 +73,7 @@ class BoardPieces:
     def __is_valid_move(self, from_square, to_square):
         return from_square in self.board and to_square in self.board
 
-    def __is_castling(self, from_sq, to_sq):
+    def __get_move_type(self, from_sq, to_sq):
         """
         check valid castling move
         """
