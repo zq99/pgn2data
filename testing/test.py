@@ -32,6 +32,10 @@ def board_test():
     test_board_ref = BoardRefTestCase()
     test_board_ref.run_piece_at_square_test()
 
+def fen_stat_tests():
+    pass
+
+
 
 def run_all_tests():
     log = logging.getLogger("pgn2data")
