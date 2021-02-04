@@ -57,7 +57,7 @@ class Process:
         self.file_games = file_games
         self.file_moves = file_moves
 
-    def generate(self):
+    def parse_file(self, add_headers_flag=True):
         """
         processes on pgn file and then exports game information
         into the game csv file, and the moves into the moves csv file
@@ -72,18 +72,23 @@ class Process:
         worker.start()
 
         move_writer = csv.writer(self.file_moves, delimiter=',')
-        move_writer.writerow(file_headers_moves)
+        if add_headers_flag:
+            move_writer.writerow(file_headers_moves)
 
         game_writer = csv.writer(self.file_games, delimiter=',')
-        game_writer.writerow(file_headers_game)
+        if add_headers_flag:
+            game_writer.writerow(file_headers_game)
+
+        order = 1
         while True:
             game_id = str(uuid.uuid4())
             game = chess.pgn.read_game(pgn)
             if game is None:
                 break  # end of file
 
-            game_writer.writerow(self.__get_game_row_data(game, game_id, self.pgn_file))
+            game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
             q.put((game_id, game, move_writer))
+            order += 1
 
         q.join()
 
@@ -100,7 +105,6 @@ class Process:
         """
         process all the moves in a game
         """
-        board_pieces = BoardPieces()
         board = game.board()
         order_number = 1
         sequence = ""
@@ -108,14 +112,16 @@ class Process:
             notation = board.san(move)
             board.push(move)
             player_move = PlayerMove(move, notation)
-            piece = board_pieces.get_piece_at_square(player_move.get_from_square())
-            board_pieces.track_move(player_move.get_from_square(), player_move.get_to_square())
-            player_move.set_piece(piece)
+
+            index = chess.SQUARE_NAMES.index(player_move.get_to_square())
+            p = board.piece_at(chess.SQUARES[index])
+
+            player_move.set_piece(str(p))
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
             moves_writer.writerow(self.__get_move_row_data(player_move, board, game_id, game, order_number, sequence))
             order_number += 1
 
-    def __get_game_row_data(self, game, row_number, file_name):
+    def __get_game_row_data(self, game, game_id, order, file_name):
         """
         takes a "game" object and converts it into a list with the data for each column
         """
@@ -130,7 +136,7 @@ class Process:
         winner_loser_elo_diff = 0 if not (str(winner_elo).isnumeric() and str(loser_elo).isnumeric()) else int(
             winner_elo) - int(loser_elo)
 
-        return [row_number,
+        return [game_id, order,
                 game.headers["Event"] if "Event" in game.headers else "",
                 game.headers["Site"] if "Site" in game.headers else "",
                 game.headers["Date"] if "Date" in game.headers else "",

@@ -101,6 +101,8 @@ class FenStats:
             return 0, 0, 0, 0
 
         fen_rows = self.fen_position.split("/")
+        fen_rows = list(reversed(fen_rows))
+
         row_to_evaluate = fen_rows[row - 1]
         for value in row_to_evaluate:
             if not str(value).isnumeric():

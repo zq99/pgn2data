@@ -78,9 +78,11 @@ class PGNData:
             log.info("No data exported!")
             return result
 
+        add_headers = True
         for file in file_list:
             process = Process(file, file_games, file_moves)
-            process.generate()
+            process.parse_file(add_headers)
+            add_headers = False
 
         file_games.close()
         file_moves.close()
