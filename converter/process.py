@@ -1,18 +1,15 @@
+import csv
 import logging
 import ntpath
 import queue
 import uuid
 from threading import Thread
-from converter.board_ref import BoardPieces
 
 import chess
 import chess.pgn
 
-from converter.fen import FenStats
 from common.log_time import get_time_stamp
-
-import csv
-
+from converter.fen import FenStats
 from converter.headers import file_headers_game, file_headers_moves
 
 log = logging.getLogger("pgn2data - process")

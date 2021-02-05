@@ -60,7 +60,7 @@ class FenTestCase(unittest.TestCase):
 
         for r in full_range(1, 8):
             result = fs.get_piece_count_and_value_for_fen_row(r)
-            self.assertEqual(result,valuations[r-1])
+            self.assertEqual(result, valuations[r - 1])
 
 
 def board_test():

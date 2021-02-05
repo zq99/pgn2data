@@ -24,9 +24,11 @@ class PieceColor(Enum):
 class BoardPieces:
     """
     This is used to track where the board pieces are during a game
+    Assumes the board starts off in the standard chess position
     """
 
     def __init__(self):
+
         self.board = {
             "a1": "R", "b1": "N", "c1": "B", "d1": "Q", "e1": "K", "f1": "B", "g1": "N", "h1": "R",
             "a2": "P", "b2": "P", "c2": "P", "d2": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
@@ -49,12 +51,6 @@ class BoardPieces:
         """
         these inputs are string representations e.g "A1" or "H8
         """
-
-        #TODO
-
-        #Atomic
-        #Chess960
-        #Crazyhouse
 
         if self.__is_valid_move(from_square, to_square):
             move_type = self.__get_move_type(from_square, to_square)
