@@ -19,6 +19,9 @@ setup(
     author_email='zq99@hotmail.com',
     keywords=['CHESS', 'PGN', 'NOTATION', 'DATA', 'FORSYTH–EDWARDS NOTATION', 'CSV', 'DATASET', 'DATABASE',
               'NORMALIZATION'],
+    install_requires=[
+        'chess'
+    ],
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
     description='Transforms a chess pgn file into a csv dataset containing game information and move information',
