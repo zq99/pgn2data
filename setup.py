@@ -18,7 +18,7 @@ setup(
     author='Zaid Qureshi',
     author_email='zq99@hotmail.com',
     keywords=['CHESS', 'PGN', 'NOTATION', 'DATA', 'FORSYTH–EDWARDS NOTATION', 'CSV', 'DATASET', 'DATABASE',
-              'NORMALIZATION'],
+              'NORMALIZATION','TABULATION','STRUCTURED DATA'],
     install_requires=[
         'chess'
     ],
