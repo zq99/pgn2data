@@ -1,6 +1,6 @@
 # pgn2data library
 
-A library that converts a chess pgn files into tabulated data sets.
+A library that converts chess pgn files into tabulated data sets.
 
 A pgn file can contain one or multiple chess games. The library parses the pgn file and creates two csv files:
 
