@@ -26,14 +26,14 @@ if __name__ == '__main__':
 
     import logging
 
-    #pgn_data = PGNData(["data/pgn/spassky_petrosian_1966.pgn"], "yyyy")
+    pgn_data = PGNData(["data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn"], "drdunkenstein_lichess")
     # pgn_data = PGNData(["data/pgn/tal_bronstein_1982.pgn"])
 
-    pgn_data = PGNData(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
-                        "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
-                        "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
-                        "data/pgn/lichess_DrNykterstein_2021-01-13.pgn",
-                        "data/pgn/lichess_manwithavan_2021-01-04.pgn"])
+    #pgn_data = PGNData(["data/pgn/lichess_damnsaltythatsport_2021-01-04.pgn",
+     #                   "data/pgn/lichess_DannyTheDonkey_2021-01-04.pgn",
+      #                  "data/pgn/lichess_DrDrunkenstein_2021-01-04.pgn",
+       #                 "data/pgn/lichess_DrNykterstein_2021-01-13.pgn",
+        #                "data/pgn/lichess_manwithavan_2021-01-04.pgn"])
 
     result = pgn_data.export()
     result.print_summary()
