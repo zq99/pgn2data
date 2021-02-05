@@ -28,7 +28,7 @@ Here is a basic example of how to convert a PGN file:
     result = pgn_data.export()
     result.print_summary()
     
-The Result object is a return value from the process, which allows you to check whether the dataset creation was successful.
+The return value from the process allows you to check whether the datasets have been created or not.
 
 To group multiple files into the same output file you can do the following:
 
