@@ -11,11 +11,18 @@ A pgn file can contain one or multiple chess games. The library parses the pgn f
 The two files can be mapped together using a GUID which the process inserts into both files.
 
 
+## Installation
+
+Run the following command on the python terminal:
+
+    pip install pgn2data
+
+
 ## Implementation
 
 Here is a basic example of how to convert a PGN file:
 
-    import PGNData
+    from converter.pgn_data import PGNData
     
     pgn_data = PGNData("data/pgn/tal_bronstein_1982.pgn")
     result = pgn_data.export()
