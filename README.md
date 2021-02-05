@@ -24,7 +24,7 @@ Here is a basic example of how to convert a PGN file:
 
     from converter.pgn_data import PGNData
     
-    pgn_data = PGNData("data/pgn/tal_bronstein_1982.pgn")
+    pgn_data = PGNData("tal_bronstein_1982.pgn")
     result = pgn_data.export()
     result.print_summary()
     
@@ -32,7 +32,7 @@ The Result object is a return value from the process, which allows you to check 
 
 To group multiple files into the same output file you can do the following:
 
-    pgn_data = PGNData(["data/pgn/file1.pgn","data/pgn/file/file2.pgn"],"output")
+    pgn_data = PGNData(["file1.pgn","file2.pgn"],"output")
     result = pgn_data.export()
     result.print_summary()
     
