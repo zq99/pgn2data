@@ -1,3 +1,9 @@
+"""
+This has been tested using the Lichess API
+lichess.org/games/export/nykterstein
+lichess.org/games/export/[user_name]?since=1525132800000
+"""
+
 import unittest
 from converter.board_ref import BoardPieces
 import logging

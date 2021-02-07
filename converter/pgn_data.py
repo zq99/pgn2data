@@ -1,8 +1,4 @@
-"""
-This has been tested using the Lichess API
-lichess.org/games/export/nykterstein
-lichess.org/games/export/[user_name]?since=1525132800000
-"""
+
 
 import logging
 import ntpath
@@ -20,6 +16,13 @@ logging.basicConfig(level=logging.INFO)
 class PGNData:
     """
     Main class to handle the library's methods
+    examples of how to call:
+        (1) p = PGNData("tal_bronstein_1982.pgn","test")
+        (2) p = PGNData("tal_bronstein_1982.pgn")
+        (3) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"],"test")
+        (4) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"])
+
+        p.export()
     """
 
     def __init__(self, pgn, file_name=None):
@@ -29,11 +32,6 @@ class PGNData:
     def export(self):
         """
         main method to convert pgn to csv
-        examples of how to call:
-        (1) convert_pgn("data/pgn/tal_bronstein_1982.pgn","test")
-        (2) convert_pgn("data/pgn/tal_bronstein_1982.pgn")
-        (3) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
-        (4) convert_pgn(["data/pgn/tal_bronstein_1982.pgn","data/pgn/tal_bronstein_1982.pgn"])
         """
         timer = TimeProcess()
         result = Result.get_empty_result()
