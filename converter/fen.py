@@ -10,9 +10,9 @@ logging.basicConfig(level=logging.INFO)
 
 class FenStats:
     """
-    Handles all calculations performed on the fen position
+    Handles all calculations performed on a fen position
     """
-    # value of all player board at start of game
+    # total value of a player's pieces at start of game
     PIECE_VALUE_TOTAL = 39
 
     def __init__(self, fen):

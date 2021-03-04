@@ -25,6 +25,7 @@ class BoardPieces:
     """
     This is used to track where the board pieces are during a game
     Assumes the board starts off in the standard chess position
+    NOTE: This is not currently been used and has bene replaced by python chess's piece tracking
     """
 
     def __init__(self):
