@@ -27,6 +27,7 @@ file_headers_game = ["game_id",
 
 file_headers_moves = ["game_id",
                       "move_no",
+                      "move_no_pair",
                       "player",
                       "notation",
                       "move",

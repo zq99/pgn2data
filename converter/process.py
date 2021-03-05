@@ -117,11 +117,10 @@ class Process:
         """
         board = game.board()
         order_number = 1
+        players_order_number = 1
         sequence = ""
 
         # track stockfish evaluation
-        prev_eval = 0
-
         white_eval = 0
         black_eval = 0
 
@@ -130,15 +129,23 @@ class Process:
             board.push(move)
             player_move = PlayerMove(move, notation)
 
+            # this gets the name of the piece that was moved
             index = chess.SQUARE_NAMES.index(player_move.get_to_square())
             p = board.piece_at(chess.SQUARES[index])
 
             player_move.set_piece(str(p))
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
-            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number, sequence, engine,white_eval,black_eval)
+
+            # output the data about the move to the file
+            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number, players_order_number,sequence, engine,white_eval,black_eval)
             moves_writer.writerow(row_data)
+
+            # this is tracking the move numbers in the game
+            players_order_number += 1 if (order_number % 2) == 0 else 0
             order_number += 1
 
+            # this is tracking what the previous evaluation is for each move
+            # so it can be inserted alongisde the current row
             white_eval = prev_eval if is_white else white_eval
             black_eval = prev_eval if not is_white else black_eval
 
@@ -185,7 +192,7 @@ class Process:
 
     __fen_row_counts_and_valuation_dict = {}
 
-    def __get_move_row_data(self, player_move, board, game_id, game, order_number, sequence, engine,white_eval,black_eval):
+    def __get_move_row_data(self, player_move, board, game_id, game, order_number, players_order_number, sequence, engine,white_eval,black_eval):
         """
         process each move in a game
         """
@@ -204,6 +211,7 @@ class Process:
         player_name = game.headers["White"] if is_white_move else game.headers["Black"]
         player_colour = "White" if is_white_move else "Black"
 
+        # this caculates engine envaluation but only an engine has been specifed
         evaluation = 0
         if engine is not None:
             info = engine.analyse(board, chess.engine.Limit(depth=22))
@@ -212,6 +220,7 @@ class Process:
 
         data = [game_id,
                 order_number,
+                players_order_number,
                 player_name,
                 player_move.notation,
                 player_move.move,
