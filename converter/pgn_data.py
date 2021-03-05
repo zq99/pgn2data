@@ -27,9 +27,13 @@ class PGNData:
         self.pgn = pgn
         self.file_name = file_name
         self.engine_path = None
+        self.depth = 20
 
     def set_engine_path(self, path):
         self.engine_path = path
+
+    def set_engine_depth(self,depth):
+        self.depth = depth
 
     def export(self):
         """
@@ -80,7 +84,7 @@ class PGNData:
 
         add_headers = True
         for file in file_list:
-            process = Process(file, file_games, file_moves, self.engine_path)
+            process = Process(file, file_games, file_moves, self.engine_path, self.depth)
             process.parse_file(add_headers)
             add_headers = False
 

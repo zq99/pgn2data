@@ -12,6 +12,7 @@ def run_test():
     file = "C:/Users/work/Documents/PycharmProjects/pgn2data/samples/caruana_carlsen_2018.pgn"
     pgn_data = PGNData(file)
     pgn_data.set_engine_path(get_engine_path())
+    pgn_data.set_engine_depth(1)
     result = pgn_data.export()
     result.print_summary()
 

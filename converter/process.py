@@ -50,12 +50,12 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, file_games, file_moves, engine_path=None):
+    def __init__(self, pgn_file, file_games, file_moves, engine_path=None, engine_depth=22):
         self.pgn_file = pgn_file
         self.file_games = file_games
         self.file_moves = file_moves
         self.engine_path = engine_path
-        self.engine_depth = 22
+        self.engine_depth = engine_depth
 
     def parse_file(self, add_headers_flag=True):
         """
@@ -94,7 +94,7 @@ class Process:
                 break  # end of file
 
             game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
-            q.put((game_id, game, move_writer, engine))
+            q.put((game_id, game, move_writer, engine,self.engine_depth))
             order += 1
 
         q.join()
@@ -108,10 +108,11 @@ class Process:
         """
         while True:
             item = q.get()
-            self.__process_move(item[0], item[1], item[2], item[3])
+            # game_id | game | move_writer | engine | engine_depth
+            self.__process_move(item[0], item[1], item[2], item[3], item[4])
             q.task_done()
 
-    def __process_move(self, game_id, game, moves_writer, engine):
+    def __process_move(self, game_id, game, moves_writer, engine, depth):
         """
         process all the moves in a game
         """
@@ -137,7 +138,7 @@ class Process:
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
 
             # output the data about the move to the file
-            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number, players_order_number,sequence, engine,white_eval,black_eval)
+            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number, players_order_number,sequence, engine, depth, white_eval,black_eval)
             moves_writer.writerow(row_data)
 
             # this is tracking the move numbers in the game
@@ -145,7 +146,7 @@ class Process:
             order_number += 1
 
             # this is tracking what the previous evaluation is for each move
-            # so it can be inserted alongisde the current row
+            # so it can be inserted alongside the current row
             white_eval = prev_eval if is_white else white_eval
             black_eval = prev_eval if not is_white else black_eval
 
@@ -192,7 +193,7 @@ class Process:
 
     __fen_row_counts_and_valuation_dict = {}
 
-    def __get_move_row_data(self, player_move, board, game_id, game, order_number, players_order_number, sequence, engine,white_eval,black_eval):
+    def __get_move_row_data(self, player_move, board, game_id, game, order_number, players_order_number, sequence, engine, depth, white_eval,black_eval):
         """
         process each move in a game
         """
@@ -211,10 +212,10 @@ class Process:
         player_name = game.headers["White"] if is_white_move else game.headers["Black"]
         player_colour = "White" if is_white_move else "Black"
 
-        # this caculates engine envaluation but only an engine has been specifed
+        # this calculates engine envaluation but only an engine has been specifed
         evaluation = 0
         if engine is not None:
-            info = engine.analyse(board, chess.engine.Limit(depth=22))
+            info = engine.analyse(board, chess.engine.Limit(depth=depth))
             pov_score = info["score"]
             evaluation = pov_score.white().score() if is_white_move else pov_score.black().score()
 
@@ -264,6 +265,7 @@ class Process:
             prev_value = white_eval if is_white_move else black_eval
             data.append(prev_value/100.0)
             data.append((float(evaluation) - float(prev_value))/100.0)
+            data.append(depth)
 
         return data, evaluation, is_white_move
 
