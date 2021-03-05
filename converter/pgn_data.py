@@ -1,5 +1,3 @@
-
-
 import logging
 import ntpath
 import os.path
@@ -28,6 +26,10 @@ class PGNData:
     def __init__(self, pgn, file_name=None):
         self.pgn = pgn
         self.file_name = file_name
+        self.engine_path = None
+
+    def set_engine_path(self, path):
+        self.engine_path = path
 
     def export(self):
         """
@@ -78,7 +80,7 @@ class PGNData:
 
         add_headers = True
         for file in file_list:
-            process = Process(file, file_games, file_moves)
+            process = Process(file, file_games, file_moves, self.engine_path)
             process.parse_file(add_headers)
             add_headers = False
 

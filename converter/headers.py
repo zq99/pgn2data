@@ -88,3 +88,5 @@ file_headers_moves = ["game_id",
                       "fen_row7_black_value",
                       "fen_row8_black_value",
                       "move_sequence"]
+
+file_headers_stockfish = ["eval","prev_eval","diff_eval"]

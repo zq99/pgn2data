@@ -7,10 +7,11 @@ from threading import Thread
 
 import chess
 import chess.pgn
+import chess.engine
 
 from common.log_time import get_time_stamp
 from converter.fen import FenStats
-from converter.headers import file_headers_game, file_headers_moves
+from converter.headers import file_headers_game, file_headers_moves, file_headers_stockfish
 
 log = logging.getLogger("pgn2data - process")
 logging.basicConfig(level=logging.INFO)
@@ -49,10 +50,12 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, file_games, file_moves):
+    def __init__(self, pgn_file, file_games, file_moves, engine_path=None):
         self.pgn_file = pgn_file
         self.file_games = file_games
         self.file_moves = file_moves
+        self.engine_path = engine_path
+        self.engine_depth = 22
 
     def parse_file(self, add_headers_flag=True):
         """
@@ -63,6 +66,10 @@ class Process:
         log.info("Processing file:{}".format(self.pgn_file))
         pgn = open(self.pgn_file)
 
+        engine = None
+        if self.engine_path is not None:
+            engine = chess.engine.SimpleEngine.popen_uci(self.engine_path)
+
         q = queue.Queue(maxsize=0)
         worker = Thread(target=self.__process_move_queue, args=(q,))
         worker.setDaemon(True)
@@ -70,7 +77,10 @@ class Process:
 
         move_writer = csv.writer(self.file_moves, delimiter=',')
         if add_headers_flag:
-            move_writer.writerow(file_headers_moves)
+            headers = file_headers_moves
+            if engine is not None:
+                headers.extend(file_headers_stockfish)
+            move_writer.writerow(headers)
 
         game_writer = csv.writer(self.file_games, delimiter=',')
         if add_headers_flag:
@@ -84,10 +94,13 @@ class Process:
                 break  # end of file
 
             game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
-            q.put((game_id, game, move_writer))
+            q.put((game_id, game, move_writer, engine))
             order += 1
 
         q.join()
+
+        if engine is not None:
+            engine.quit()
 
     def __process_move_queue(self, q):
         """
@@ -95,16 +108,23 @@ class Process:
         """
         while True:
             item = q.get()
-            self.__process_move(item[0], item[1], item[2])
+            self.__process_move(item[0], item[1], item[2], item[3])
             q.task_done()
 
-    def __process_move(self, game_id, game, moves_writer):
+    def __process_move(self, game_id, game, moves_writer, engine):
         """
         process all the moves in a game
         """
         board = game.board()
         order_number = 1
         sequence = ""
+
+        # track stockfish evaluation
+        prev_eval = 0
+
+        white_eval = 0
+        black_eval = 0
+
         for move in game.mainline_moves():
             notation = board.san(move)
             board.push(move)
@@ -115,8 +135,12 @@ class Process:
 
             player_move.set_piece(str(p))
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
-            moves_writer.writerow(self.__get_move_row_data(player_move, board, game_id, game, order_number, sequence))
+            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number, sequence, engine,white_eval,black_eval)
+            moves_writer.writerow(row_data)
             order_number += 1
+
+            white_eval = prev_eval if is_white else white_eval
+            black_eval = prev_eval if not is_white else black_eval
 
     def __get_game_row_data(self, game, game_id, order, file_name):
         """
@@ -161,7 +185,7 @@ class Process:
 
     __fen_row_counts_and_valuation_dict = {}
 
-    def __get_move_row_data(self, player_move, board, game_id, game, order_number, sequence):
+    def __get_move_row_data(self, player_move, board, game_id, game, order_number, sequence, engine,white_eval,black_eval):
         """
         process each move in a game
         """
@@ -180,7 +204,13 @@ class Process:
         player_name = game.headers["White"] if is_white_move else game.headers["Black"]
         player_colour = "White" if is_white_move else "Black"
 
-        return [game_id,
+        evaluation = 0
+        if engine is not None:
+            info = engine.analyse(board, chess.engine.Limit(depth=22))
+            pov_score = info["score"]
+            evaluation = pov_score.white().score() if is_white_move else pov_score.black().score()
+
+        data = [game_id,
                 order_number,
                 player_name,
                 player_move.notation,
@@ -219,6 +249,14 @@ class Process:
                 fen_row_valuations[0][3], fen_row_valuations[1][3], fen_row_valuations[2][3], fen_row_valuations[3][3],
                 fen_row_valuations[4][3], fen_row_valuations[5][3], fen_row_valuations[6][3], fen_row_valuations[7][3],
                 sequence]
+
+        if engine is not None:
+            data.append(evaluation/100.0)
+            prev_value = white_eval if is_white_move else black_eval
+            data.append(prev_value/100.0)
+            data.append((float(evaluation) - float(prev_value))/100.0)
+
+        return data, evaluation, is_white_move
 
     @staticmethod
     def __is_number_even(number):
