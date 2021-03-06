@@ -50,7 +50,7 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, file_games, file_moves, engine_path=None, engine_depth=22):
+    def __init__(self, pgn_file, file_games, file_moves, engine_path, engine_depth):
         self.pgn_file = pgn_file
         self.file_games = file_games
         self.file_moves = file_moves
