@@ -94,7 +94,7 @@ class Process:
                 break  # end of file
 
             game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
-            q.put((game_id, game, move_writer, engine,self.engine_depth))
+            q.put((game_id, game, move_writer, engine, self.engine_depth))
             order += 1
 
         q.join()
@@ -138,7 +138,9 @@ class Process:
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
 
             # output the data about the move to the file
-            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number, players_order_number,sequence, engine, depth, white_eval,black_eval)
+            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number,
+                                                                     players_order_number, sequence, engine, depth,
+                                                                     white_eval, black_eval)
             moves_writer.writerow(row_data)
 
             # this is tracking the move numbers in the game
@@ -193,7 +195,8 @@ class Process:
 
     __fen_row_counts_and_valuation_dict = {}
 
-    def __get_move_row_data(self, player_move, board, game_id, game, order_number, players_order_number, sequence, engine, depth, white_eval,black_eval):
+    def __get_move_row_data(self, player_move, board, game_id, game, order_number, players_order_number, sequence,
+                            engine, depth, white_eval, black_eval):
         """
         process each move in a game
         """
@@ -212,7 +215,7 @@ class Process:
         player_name = game.headers["White"] if is_white_move else game.headers["Black"]
         player_colour = "White" if is_white_move else "Black"
 
-        # this calculates engine envaluation but only an engine has been specifed
+        # this calculates engine evaluation but only an engine has been specified
         evaluation = 0
         if engine is not None:
             info = engine.analyse(board, chess.engine.Limit(depth=depth))
@@ -261,10 +264,10 @@ class Process:
                 sequence]
 
         if engine is not None:
-            data.append(evaluation/100.0)
+            data.append(evaluation / 100.0)
             prev_value = white_eval if is_white_move else black_eval
-            data.append(prev_value/100.0)
-            data.append((float(evaluation) - float(prev_value))/100.0)
+            data.append(prev_value / 100.0)
+            data.append((float(evaluation) - float(prev_value)) / 100.0)
             data.append(depth)
 
         return data, evaluation, is_white_move

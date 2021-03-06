@@ -32,7 +32,7 @@ class PGNData:
     def set_engine_path(self, path):
         self.engine_path = path
 
-    def set_engine_depth(self,depth):
+    def set_engine_depth(self, depth):
         self.depth = depth
 
     def export(self):
