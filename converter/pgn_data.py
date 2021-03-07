@@ -33,7 +33,10 @@ class PGNData:
         self.engine_path = path
 
     def set_engine_depth(self, depth):
-        self.depth = depth
+        if type(depth) == int:
+            self.depth = depth
+        else:
+            log.error("Invalid engine depth specified: " + str(depth))
 
     def export(self):
         """
