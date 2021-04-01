@@ -2,6 +2,29 @@
 This has been tested using the Lichess API
 lichess.org/games/export/nykterstein
 lichess.org/games/export/[user_name]?since=1525132800000
+
+===============================
+examples of calling:
+
+path = "C:/Users/work/Downloads/"
+
+file1 = path + "lichess_damnsaltythatsport_2021-04-01.pgn"
+file2 = path + "lichess_DannyTheDonkey_2021-04-01.pgn"
+file3 = path + "lichess_DrDrunkenstein_2021-04-01.pgn"
+file4 = path + "lichess_DrNykterstein_2021-04-01.pgn"
+file5 = path + "lichess_manwithavan_2021-04-01.pgn"
+
+s = "C:/Users/work/Documents/stockfish/stockfish_20090216_x64_bmi2.exe"
+
+from converter.pgn_data import PGNData
+
+pgn_data = PGNData([file1, file2, file3, file4, file5], "output_99")
+#pgn_data = PGNData([file3], "games")
+pgn_data.set_engine_path(s)
+pgn_data.set_engine_depth(1)
+result = pgn_data.export()
+result.print_summary()
+===============================
 """
 
 import unittest

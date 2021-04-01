@@ -218,9 +218,7 @@ class Process:
         # this calculates engine evaluation but only an engine has been specified
         evaluation = 0
         if engine is not None:
-            info = engine.analyse(board, chess.engine.Limit(depth=depth))
-            pov_score = info["score"]
-            evaluation = pov_score.white().score() if is_white_move else pov_score.black().score()
+            evaluation = self.__get_evaluation_from_board(board, depth, engine, is_white_move)
 
         data = [game_id,
                 order_number,
@@ -264,13 +262,27 @@ class Process:
                 sequence]
 
         if engine is not None:
-            data.append(evaluation / 100.0)
-            prev_value = white_eval if is_white_move else black_eval
-            data.append(prev_value / 100.0)
-            data.append((float(evaluation) - float(prev_value)) / 100.0)
-            data.append(depth)
+            if isinstance(evaluation, int) and isinstance(white_eval, int) and isinstance(black_eval, int):
+                data.append(evaluation / 100.0)
+                prev_value = white_eval if is_white_move else black_eval
+                data.append(prev_value / 100.0)
+                data.append((float(evaluation) - float(prev_value)) / 100.0)
+                data.append(depth)
 
         return data, evaluation, is_white_move
+
+    @staticmethod
+    def __get_evaluation_from_board(board, depth, engine, is_white_move):
+        # this wrapped in a function because engline.analyse is not able to
+        # parse the board object without errors
+        evaluation = 0
+        try:
+            info = engine.analyse(board, chess.engine.Limit(depth=depth))
+            pov_score = info["score"]
+            evaluation = pov_score.white().score() if is_white_move else pov_score.black().score()
+        except Exception as ex:
+            log.error(ex)
+        return evaluation
 
     @staticmethod
     def __is_number_even(number):

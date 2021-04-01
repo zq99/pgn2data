@@ -17,24 +17,24 @@ class PGNData:
     examples of how to call:
         (1) p = PGNData("tal_bronstein_1982.pgn","test")
         (2) p = PGNData("tal_bronstein_1982.pgn")
-        (3) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"],"test")
+        (3) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"],"myfilename")
         (4) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"])
 
         p.export()
     """
 
     def __init__(self, pgn, file_name=None):
-        self.pgn = pgn
-        self.file_name = file_name
-        self.engine_path = None
-        self.depth = 20
+        self._pgn = pgn
+        self._file_name = file_name
+        self._engine_path = None
+        self._depth = 20
 
     def set_engine_path(self, path):
-        self.engine_path = path
+        self._engine_path = path
 
     def set_engine_depth(self, depth):
         if type(depth) == int:
-            self.depth = depth
+            self._depth = depth
         else:
             log.error("Invalid engine depth specified: " + str(depth))
 
@@ -44,18 +44,18 @@ class PGNData:
         """
         timer = TimeProcess()
         result = Result.get_empty_result()
-        if isinstance(self.pgn, list):
-            if not self.__is_valid_pgn_list(self.pgn):
+        if isinstance(self._pgn, list):
+            if not self.__is_valid_pgn_list(self._pgn):
                 log.error("no pgn files found!")
                 return result
-            file = self.__create_file_name(self.pgn[0]) if self.file_name is None else self.file_name
-            result = self.__process_pgn_list(self.pgn, file)
-        elif isinstance(self.pgn, str):
-            if not os.path.isfile(self.pgn):
+            file = self.__create_file_name(self._pgn[0]) if self._file_name is None else self._file_name
+            result = self.__process_pgn_list(self._pgn, file)
+        elif isinstance(self._pgn, str):
+            if not os.path.isfile(self._pgn):
                 log.error("no pgn files found!")
                 return result
-            pgn_list = [self.pgn]
-            file = self.__create_file_name(self.pgn) if self.file_name is None else self.file_name
+            pgn_list = [self._pgn]
+            file = self.__create_file_name(self._pgn) if self._file_name is None else self._file_name
             result = self.__process_pgn_list(pgn_list, file)
         timer.print_time_taken()
         return result
@@ -87,7 +87,7 @@ class PGNData:
 
         add_headers = True
         for file in file_list:
-            process = Process(file, file_games, file_moves, self.engine_path, self.depth)
+            process = Process(file, file_games, file_moves, self._engine_path, self._depth)
             process.parse_file(add_headers)
             add_headers = False
 
@@ -108,6 +108,7 @@ class PGNData:
         if len(file_list) > 0:
             for file in file_list:
                 if not os.path.isfile(file):
+                    log.error("file not found:" + file)
                     return False
             return True
         return False

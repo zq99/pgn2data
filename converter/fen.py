@@ -115,3 +115,4 @@ class FenStats:
                     b_piece_valuation += piece_fen_value[chess_piece] if color == chess.BLACK else 0
 
         return w_piece_count, w_piece_valuation, b_piece_count, b_piece_valuation
+
