@@ -10,7 +10,7 @@ classifiers = [
 
 setup(
     name='pgn2data',
-    version='0.0.3',
+    version='0.0.4',
     packages=['converter', 'common', 'testing'],
     url='',
     classifiers=classifiers,
