@@ -179,6 +179,8 @@ class Process:
                 game.headers["WhiteRatingDiff"] if "WhiteRatingDiff" in game.headers else "",
                 game.headers["BlackElo"] if "BlackElo" in game.headers else "",
                 game.headers["BlackRatingDiff"] if "BlackRatingDiff" in game.headers else "",
+                game.headers["WhiteTitle"] if "WhiteTitle" in game.headers else "",
+                game.headers["BlackTitle"] if "BlackTitle" in game.headers else "",
                 winner,
                 winner_elo,
                 loser,

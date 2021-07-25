@@ -33,6 +33,8 @@ import logging
 from converter.fen import FenStats
 import chess
 from common.common import full_range
+from converter.pgn_data import PGNData
+import os
 
 
 class BoardRefTestCase(unittest.TestCase):
@@ -92,6 +94,35 @@ class FenTestCase(unittest.TestCase):
             self.assertEqual(result, valuations[r - 1])
 
 
+class FileCreationTestCase(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def run_tests(self):
+        self.run_single_file_test()
+        self.run_multiple_files_test()
+
+    def run_single_file_test(self):
+        folder = os.path.dirname(os.path.realpath(__file__))
+        f = folder + "/" + "pgn_test1.pgn"
+        o = folder + "/" + "output1"
+        pgn_data = PGNData(f, o)
+        result = pgn_data.export()
+        result.print_summary()
+        self.assertTrue(result.is_complete)
+
+    def run_multiple_files_test(self):
+        folder = os.path.dirname(os.path.realpath(__file__))
+        f1 = folder + "/" + "pgn_test1.pgn"
+        f2 = folder + "/" + "pgn_test2.pgn"
+        o = folder + "/" + "output2"
+        pgn_data = PGNData([f1, f2], o)
+        result = pgn_data.export()
+        result.print_summary()
+        self.assertTrue(result.is_complete)
+
+
 def board_test():
     test_board_ref = BoardRefTestCase()
     test_board_ref.run_piece_at_square_test()
@@ -102,11 +133,20 @@ def fen_stat_tests():
     test_fen.run_test()
 
 
+def file_creation_tests():
+    test_creation = FileCreationTestCase()
+    test_creation.run_tests()
+
+
 def run_all_tests():
+    """
+    This is the main method to run to check the API output
+    """
     log = logging.getLogger("pgn2data")
     logging.basicConfig(level=logging.INFO)
 
     log.info("Start testing")
     board_test()
     fen_stat_tests()
+    file_creation_tests()
     log.info("End testing")
