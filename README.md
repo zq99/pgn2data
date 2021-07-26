@@ -11,12 +11,14 @@ A pgn file can contain one or multiple chess games. The library parses the pgn f
 The two files can be mapped together using a GUID which the process inserts into both files.
 
 
+
 ## Installation
 
 Run the following command on the python terminal:
 
     pip install pgn2data
     
+   
    
 ## Implementation
 
@@ -37,6 +39,7 @@ To group multiple files into the same output file you can do the following:
     result.print_summary()
     
 This processes the two pgn files in the specified list and exports them to file called "output.csv".
+
 
 
 ## Columns
