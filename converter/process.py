@@ -158,14 +158,21 @@ class Process:
         """
 
         winner = self.__get_winner(game)
-        loser = game.headers["White"] if winner == game.headers["Black"] else (
-            game.headers["Black"] if winner == game.headers["White"] else winner)
-        winner_elo = game.headers["WhiteElo"] if winner == game.headers["White"] else (
-            game.headers["BlackElo"] if winner == game.headers["Black"] else "")
-        loser_elo = game.headers["WhiteElo"] if winner == game.headers["Black"] else (
-            game.headers["BlackElo"] if winner == game.headers["White"] else "")
-        winner_loser_elo_diff = 0 if not (str(winner_elo).isnumeric() and str(loser_elo).isnumeric()) else int(
-            winner_elo) - int(loser_elo)
+        loser = ""
+        winner_elo = ""
+        loser_elo = ""
+        winner_loser_elo_diff = ""
+
+        if "White" in game.headers and "Black" in game.headers:
+            loser = game.headers["White"] if winner == game.headers["Black"] else (
+                game.headers["Black"] if winner == game.headers["White"] else winner)
+        if "WhiteElo" in game.headers and "BlackElo" in game.headers:
+            winner_elo = game.headers["WhiteElo"] if winner == game.headers["White"] else (
+                game.headers["BlackElo"] if winner == game.headers["Black"] else "")
+            loser_elo = game.headers["WhiteElo"] if winner == game.headers["Black"] else (
+                game.headers["BlackElo"] if winner == game.headers["White"] else "")
+            winner_loser_elo_diff = 0 if not (str(winner_elo).isnumeric() and str(loser_elo).isnumeric()) else int(
+                winner_elo) - int(loser_elo)
 
         return [game_id, order,
                 game.headers["Event"] if "Event" in game.headers else "",

@@ -3,6 +3,7 @@ This has been tested using the Lichess API
 lichess.org/games/export/nykterstein
 lichess.org/games/export/[user_name]?since=1525132800000
 
+Python version is 3.8
 ===============================
 examples of calling:
 
@@ -35,6 +36,7 @@ import chess
 from common.common import full_range
 from converter.pgn_data import PGNData
 import os
+import glob
 
 
 class BoardRefTestCase(unittest.TestCase):
@@ -96,31 +98,84 @@ class FenTestCase(unittest.TestCase):
 
 class FileCreationTestCase(unittest.TestCase):
 
+    def __init__(self):
+        super().__init__()
+        self.setUp()
+
     def setUp(self):
-        pass
+        self.folder = os.path.dirname(os.path.realpath(__file__))
 
     def run_tests(self):
+        self.run_basic_pgn_format_test()
         self.run_single_file_test()
         self.run_multiple_files_test()
+        self.run_reported_github_issues_test()
+
+    def run_basic_pgn_format_test(self):
+        f = self.get_source_filepath("basic_format.pgn")
+        o = self.get_output_filepath("basic_format")
+        pgn_data = PGNData(f, o)
+        result = pgn_data.export()
+        result.print_summary()
+        self.assertTrue(result.is_complete)
 
     def run_single_file_test(self):
-        folder = os.path.dirname(os.path.realpath(__file__))
-        f = folder + "/" + "pgn_test1.pgn"
-        o = folder + "/" + "output1"
+
+        f = self.get_source_filepath("pgn_test1.pgn")
+        o = self.get_output_filepath("output1")
         pgn_data = PGNData(f, o)
         result = pgn_data.export()
         result.print_summary()
         self.assertTrue(result.is_complete)
 
     def run_multiple_files_test(self):
-        folder = os.path.dirname(os.path.realpath(__file__))
-        f1 = folder + "/" + "pgn_test1.pgn"
-        f2 = folder + "/" + "pgn_test2.pgn"
-        o = folder + "/" + "output2"
+
+        f1 = self.get_source_filepath("pgn_test1.pgn")
+        f2 = self.get_source_filepath("pgn_test2.pgn")
+        o = self.get_output_filepath("output2")
         pgn_data = PGNData([f1, f2], o)
         result = pgn_data.export()
         result.print_summary()
         self.assertTrue(result.is_complete)
+
+    def run_reported_github_issues_test(self):
+
+        """
+        Every issue on github that is resolved should
+        have a test pgn file that is added here to
+        demonstrate an issue has been fixed. The name
+        of the pgn file should be:
+
+        "github_issue_[issue number].pgn"
+
+        Add each file to the path "/testing/pgn/github/"
+        """
+
+        files = self.get_github_issues_test_files()
+
+        for file in files:
+            file_name = self.get_source_github_issues_filepath(file)
+            output_name = self.get_output_filepath(file.replace(".pgn", ""))
+            pgn_data = PGNData(file_name, output_name)
+            result = pgn_data.export()
+            self.assertTrue(result.is_complete)
+
+    def get_github_issues_test_files(self):
+        files = []
+        path = r'{}\\pgn\\github\\github_issue_*.pgn'.format(self.folder)
+        for file in glob.glob(path):
+            name = os.path.basename(file)
+            files.append(name)
+        return files
+
+    def get_source_github_issues_filepath(self, file):
+        return self.folder + "/pgn/github/" + file
+
+    def get_source_filepath(self, file):
+        return self.folder + "/pgn/" + file
+
+    def get_output_filepath(self, output_name):
+        return self.folder + "/exports/" + output_name
 
 
 def board_test():

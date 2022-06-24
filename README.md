@@ -1,6 +1,6 @@
-# pgn2data library
+# pgn2data
 
-A library that converts chess pgn files into CSV tabulated data sets.
+This library converts chess pgn files into CSV tabulated data sets.
 
 A pgn file can contain one or multiple chess games. The library parses the pgn file and creates two csv files:
 
@@ -11,15 +11,15 @@ A pgn file can contain one or multiple chess games. The library parses the pgn f
 The two files can be mapped together using a GUID which the process inserts into both files.
 
 
-
 ## Installation
 
-Run the following command on the python terminal:
+The library requires Python 3.7 or later.  
+ 
+To install, type the following command on the python terminal:
 
     pip install pgn2data
     
-   
-   
+  
 ## Implementation
 
 Here is a basic example of how to convert a PGN file:
@@ -38,13 +38,20 @@ To group multiple files into the same output file you can do the following:
     result = pgn_data.export()
     result.print_summary()
     
-This processes the two pgn files in the specified list and exports them to file called "output.csv".
+The above code will process the two pgn files (file1 and file2) and export them to a file called "output.csv".
 
+
+## Examples
+
+The folder 'samples' in this repository, has some examples of the output from the library.
+
+You can also go [here](https://www.kaggle.com/datasets/zq1200/magnus-carlsen-lichess-games-dataset) to see a Kaggle project that converted all of Magnus Carlsen's online Bullet games
+into CSV format. 
 
 
 ## Columns
 
-This is a list of the columns in each dataset:
+This is a full list of the columns in each output file:
 
 ### Games File
 
