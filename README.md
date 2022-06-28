@@ -27,18 +27,27 @@ Here is a basic example of how to convert a PGN file:
     from converter.pgn_data import PGNData
     
     pgn_data = PGNData("tal_bronstein_1982.pgn")
-    result = pgn_data.export()
-    result.print_summary()
-    
-The return value from the export function allows you to check whether the datasets have been created or not.
+    pgn_data.export()
 
-To group multiple files into the same output file you can do the following:
+The following is an example of grouping multiple files into the same output file ("output.csv").
 
     pgn_data = PGNData(["file1.pgn","file2.pgn"],"output")
+    pgn_data.export()
+    
+The export function has a return object which allows you to quickly check the size and location of the files created:
+
+    pgn_data = PGNData("tal_bronstein_1982.pgn")
     result = pgn_data.export()
     result.print_summary()
-    
-The above code will process the two pgn files (file1 and file2) and export them to a file called "output.csv".
+
+If you want to check if the files have been created before doing further processing you can do the following:
+
+    pgn_data = PGNData("tal_bronstein_1982.pgn")
+    result = pgn_data.export()
+    if result.is_complete:
+        print("Files created!")
+    else:
+        print("Files not created!")
 
 
 ## Examples
