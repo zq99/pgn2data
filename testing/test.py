@@ -28,15 +28,21 @@ result.print_summary()
 ===============================
 """
 
-import unittest
-from converter.board_ref import BoardPieces
-import logging
-from converter.fen import FenStats
-import chess
-from common.common import full_range
-from converter.pgn_data import PGNData
-import os
 import glob
+import logging
+import os
+import unittest
+
+import chess
+import pandas as pd
+
+from common.common import full_range
+from converter.board_ref import BoardPieces
+from converter.fen import FenStats
+from converter.pgn_data import PGNData
+
+log = logging.getLogger("pgn2data")
+logging.basicConfig(level=logging.INFO)
 
 
 class BoardRefTestCase(unittest.TestCase):
@@ -98,18 +104,41 @@ class FenTestCase(unittest.TestCase):
 
 class FileCreationTestCase(unittest.TestCase):
 
+    exports_folder_name = "exports"
+    pgn_folder_name = "pgn"
+    issues_folder_name = "issues"
+    issues_name = 'reported_issue_*.pgn'
+
     def __init__(self):
         super().__init__()
         self.setUp()
 
     def setUp(self):
         self.folder = os.path.dirname(os.path.realpath(__file__))
+        self.check_folders_exist()
+        self.delete_old_test_exports()
+
+    def check_folders_exist(self):
+        folders = [self.get_output_filepath(None), self.get_source_filepath(None), self.get_source_issues_filepath(None)]
+        for folder in folders:
+            self.assertTrue(os.path.isdir(folder))
+
+    def delete_old_test_exports(self):
+        output_path = self.get_output_filepath(None)
+        os.chdir(output_path)
+        all_files = os.listdir()
+        if len(all_files) > 0:
+            for f in all_files:
+                log.info("removing old import: {}".format(f))
+                os.remove(f)
+        self.assertTrue(len(os.listdir()) == 0)
 
     def run_tests(self):
         self.run_basic_pgn_format_test()
         self.run_single_file_test()
         self.run_multiple_files_test()
         self.run_reported_github_issues_test()
+        self.run_pandas_dataframe_test()
 
     def run_basic_pgn_format_test(self):
         f = self.get_source_filepath("basic_format.pgn")
@@ -141,20 +170,20 @@ class FileCreationTestCase(unittest.TestCase):
     def run_reported_github_issues_test(self):
 
         """
-        Every issue on github that is resolved should
+        Every issue on issues that is resolved should
         have a test pgn file that is added here to
         demonstrate an issue has been fixed. The name
         of the pgn file should be:
 
-        "github_issue_[issue number].pgn"
+        "reported_issue_[issue number].pgn"
 
-        Add each file to the path "/testing/pgn/github/"
+        Add each file to the path "/testing/pgn/issues/"
         """
 
         files = self.get_github_issues_test_files()
 
         for file in files:
-            file_name = self.get_source_github_issues_filepath(file)
+            file_name = self.get_source_issues_filepath(file)
             output_name = self.get_output_filepath(file.replace(".pgn", ""))
             pgn_data = PGNData(file_name, output_name)
             result = pgn_data.export()
@@ -162,20 +191,72 @@ class FileCreationTestCase(unittest.TestCase):
 
     def get_github_issues_test_files(self):
         files = []
-        path = r'{}\\pgn\\github\\github_issue_*.pgn'.format(self.folder)
+        path = self.get_source_issues_filepath(self.issues_name)
         for file in glob.glob(path):
             name = os.path.basename(file)
             files.append(name)
         return files
 
-    def get_source_github_issues_filepath(self, file):
-        return self.folder + "/pgn/github/" + file
+    def get_source_issues_filepath(self, file=None):
+        name_format = '{}/{}/{}/{}' if file is not None else '{}/{}/{}'
+        return name_format.format(self.folder, self.pgn_folder_name, self.issues_folder_name, file)
 
     def get_source_filepath(self, file):
-        return self.folder + "/pgn/" + file
+        name_format = '{}/{}/{}' if file is not None else '{}/{}'
+        return name_format.format(self.folder, self.pgn_folder_name, file)
 
     def get_output_filepath(self, output_name):
-        return self.folder + "/exports/" + output_name
+        name_format = '{}/{}/{}' if output_name is not None else '{}/{}'
+        return name_format.format(self.folder, self.exports_folder_name, output_name)
+
+    def run_pandas_dataframe_test(self):
+        f = self.get_source_filepath("pandas_test.pgn")
+        o = self.get_output_filepath("pandas_test")
+        pgn_data = PGNData(f, o)
+        result = pgn_data.export()
+        result.print_summary()
+
+        log.info("check source file for dataframe has been created")
+        self.assertTrue(result.is_complete)
+        games_df = result.get_games_df()
+        moves_df = result.get_moves_df()
+        combined_df = result.get_combined_df()
+
+        log.info("check 3 dataframes are created and they are valid")
+        df_list = [games_df, moves_df, combined_df]
+        for df in df_list:
+            self.assertTrue(isinstance(df, pd.DataFrame))
+            self.assertFalse(df.empty)
+            self.assertFalse(len(df) == 0)
+
+        log.info("check correct number of columns in combined df")
+        # exclude the "game_id" to prevent double counting
+        self.assertTrue(len(combined_df.columns)-1 == (len(games_df.columns) - 1) + (len(moves_df.columns) - 1))
+
+        log.info("check combined has all the columns in games and moves")
+        combined_column_list = list(combined_df.columns.values)
+        for df in [games_df, moves_df]:
+            columns = list(df.columns.values)
+            for col in columns:
+                self.assertTrue(col in combined_column_list)
+
+        log.info("check correct number of rows in combined df")
+        self.assertTrue(len(moves_df) == len(combined_df))
+
+        log.info("perform basic pandas operation")
+        self.assertTrue(len(moves_df.head(3)) == 3)
+        self.assertTrue(len(games_df.head(1)) == 1)
+        self.assertTrue(len(combined_df.head(5)) == 5)
+
+        log.info("export combined dataframe as a csv")
+        combined_file1 = self.get_output_filepath("pandas_test_export1.csv")
+        combined_df.to_csv(combined_file1, index=False)
+        self.assertTrue(os.path.exists(combined_file1))
+
+        combined_file2 = self.get_output_filepath("pandas_test_export2.csv")
+        is_exists = result.create_combined_file(combined_file2)
+        self.assertTrue(os.path.exists(combined_file2))
+        self.assertTrue(is_exists)
 
 
 def board_test():
@@ -196,9 +277,10 @@ def file_creation_tests():
 def run_all_tests():
     """
     This is the main method to run to check the API output
+
+    >> from testing.test import run_all_tests
+    >> run_all_tests()
     """
-    log = logging.getLogger("pgn2data")
-    logging.basicConfig(level=logging.INFO)
 
     log.info("Start testing")
     board_test()

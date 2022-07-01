@@ -49,6 +49,25 @@ If you want to check if the files have been created before doing further process
     else:
         print("Files not created!")
 
+The result object also provides methods to import the created files into pandas dataframes:
+
+    pgn_data = PGNData("tal_bronstein_1982.pgn")
+    result = pgn_data.export()
+    if result.is_complete:
+        
+        # read the games file
+        games_df = result.get_games_df()
+        
+        # read the moves file
+        moves_df = result.get_moves_df()
+        
+        # read both files joined together
+        combined_df = result.get_combined_df()
+        
+        print(games_df.head())
+        print(moves_df.head())
+        print(combined_df.head())
+
 
 ## Examples
 
@@ -127,3 +146,8 @@ This is a full list of the columns in each output file:
 | fen_row{number}_{colour)_count | Number of pieces for the specified colour on this row of the board      |
 | fen_row{number}_{colour}_value | Total value of pieces for the specified colour on this row of the board |
 | move_sequence                  | Sequence of moves upto current position                                 |
+
+
+## Acknowledgements
+
+This project makes use of the [python-chess](https://github.com/niklasf/python-chess) library.
