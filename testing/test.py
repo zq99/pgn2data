@@ -129,7 +129,7 @@ class FileCreationTestCase(unittest.TestCase):
         all_files = os.listdir()
         if len(all_files) > 0:
             for f in all_files:
-                log.info("removing old import: {}".format(f))
+                log.info("removing old export: {}".format(f))
                 os.remove(f)
         self.assertTrue(len(os.listdir()) == 0)
 
@@ -214,7 +214,6 @@ class FileCreationTestCase(unittest.TestCase):
         o = self.get_output_filepath("pandas_test")
         pgn_data = PGNData(f, o)
         result = pgn_data.export()
-        result.print_summary()
 
         log.info("check source file for dataframe has been created")
         self.assertTrue(result.is_complete)
@@ -228,6 +227,7 @@ class FileCreationTestCase(unittest.TestCase):
             self.assertTrue(isinstance(df, pd.DataFrame))
             self.assertFalse(df.empty)
             self.assertFalse(len(df) == 0)
+            self.assertFalse(len(df.columns) == 0)
 
         log.info("check correct number of columns in combined df")
         # exclude the "game_id" to prevent double counting
