@@ -57,15 +57,14 @@ The result object also provides methods to import the created files into pandas 
         
         # read the games file
         games_df = result.get_games_df()
+        print(games_df.head())
         
         # read the moves file
         moves_df = result.get_moves_df()
+        print(moves_df.head())
         
         # read both files joined together
         combined_df = result.get_combined_df()
-        
-        print(games_df.head())
-        print(moves_df.head())
         print(combined_df.head())
 
 
