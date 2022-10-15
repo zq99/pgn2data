@@ -64,7 +64,7 @@ class Process:
         """
 
         log.info("Processing file:{}".format(self.pgn_file))
-        pgn = open(self.pgn_file)
+        pgn = open(self.pgn_file,encoding = "UTF-8")
 
         engine = None
         if self.engine_path is not None:
@@ -131,7 +131,11 @@ class Process:
             player_move = PlayerMove(move, notation)
 
             # this gets the name of the piece that was moved
-            index = chess.SQUARE_NAMES.index(player_move.get_to_square())
+            try:
+                index = chess.SQUARE_NAMES.index(player_move.get_to_square())
+            except:
+                print(f"Error: {notation} is an invalid move.")
+                break
             p = board.piece_at(chess.SQUARES[index])
 
             player_move.set_piece(str(p))
