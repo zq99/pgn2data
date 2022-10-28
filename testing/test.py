@@ -1,31 +1,21 @@
 """
-This has been tested using the Lichess API
-lichess.org/games/export/nykterstein
-lichess.org/games/export/[user_name]?since=1525132800000
+==========================================================
+    This is the testing framework for the pgn2data library
 
-Python version is 3.8
-===============================
-examples of calling:
+    All inputs for the tests are in the folder "pgn", and all
+    outputs from the tests are in the folder "exports".
 
-path = "C:/Users/work/Downloads/"
+    The PGN files To test core functionality are in the
+    folder "PGN".
 
-file1 = path + "lichess_damnsaltythatsport_2021-04-01.pgn"
-file2 = path + "lichess_DannyTheDonkey_2021-04-01.pgn"
-file3 = path + "lichess_DrDrunkenstein_2021-04-01.pgn"
-file4 = path + "lichess_DrNykterstein_2021-04-01.pgn"
-file5 = path + "lichess_manwithavan_2021-04-01.pgn"
+    The PGN files in the "issues" folder, are tests for each
+    of the issues raised on github.
 
-s = "C:/Users/work/Documents/stockfish/stockfish_20090216_x64_bmi2.exe"
+    All new functionality or resolved issue needs to have an
+    associated test with it (the names of the pgn files used
+    for this are in the format: "report_issue_??.csv".
 
-from converter.pgn_data import PGNData
-
-pgn_data = PGNData([file1, file2, file3, file4, file5], "output_99")
-#pgn_data = PGNData([file3], "games")
-pgn_data.set_engine_path(s)
-pgn_data.set_engine_depth(1)
-result = pgn_data.export()
-result.print_summary()
-===============================
+==========================================================
 """
 
 import glob
@@ -40,6 +30,7 @@ from common.common import full_range
 from converter.board_ref import BoardPieces
 from converter.fen import FenStats
 from converter.pgn_data import PGNData
+from common.log_time import TimeProcess
 
 log = logging.getLogger("pgn2data")
 logging.basicConfig(level=logging.INFO)
@@ -103,7 +94,6 @@ class FenTestCase(unittest.TestCase):
 
 
 class FileCreationTestCase(unittest.TestCase):
-
     exports_folder_name = "exports"
     pgn_folder_name = "pgn"
     issues_folder_name = "issues"
@@ -119,7 +109,8 @@ class FileCreationTestCase(unittest.TestCase):
         self.delete_old_test_exports()
 
     def check_folders_exist(self):
-        folders = [self.get_output_filepath(None), self.get_source_filepath(None), self.get_source_issues_filepath(None)]
+        folders = [self.get_output_filepath(None), self.get_source_filepath(None),
+                   self.get_source_issues_filepath(None)]
         for folder in folders:
             self.assertTrue(os.path.isdir(folder))
 
@@ -139,10 +130,38 @@ class FileCreationTestCase(unittest.TestCase):
         self.run_multiple_files_test()
         self.run_reported_github_issues_test()
         self.run_pandas_dataframe_test()
+        self.run_content_test()
+
+    def run_content_test(self):
+        f = self.get_source_filepath("content_test.pgn")
+        o = self.get_output_filepath("content_test")
+        pgn_data = PGNData(f, o)
+        result = pgn_data.export()
+        self.assertTrue(result.is_complete)
+        games_df = result.get_games_df()
+        moves_df = result.get_moves_df()
+        self.assertFalse(games_df.empty)
+        self.assertFalse(moves_df.empty)
+        ids_from_games_file = list(set(games_df['game_id'].values.tolist()))
+        ids_from_moves_file = list(set(moves_df['game_id'].values.tolist()))
+        ids_from_games_file.sort()
+        ids_from_moves_file.sort()
+        self.assertTrue(len(ids_from_games_file) == len(ids_from_moves_file))
+        self.assertTrue(ids_from_games_file == ids_from_moves_file)
+        colors = list(set(moves_df['color'].values.tolist()))
+        self.assertTrue(len(colors) == 2)
+        pieces = list(set(moves_df['piece'].values.tolist()))
+        pieces.sort()
+        self.assertTrue(pieces == ['B', 'K', 'N', 'P', 'Q', 'R'])
+        players1 = list(set(moves_df['player'].values.tolist()))
+        players2 = list(set(games_df['white'].values.tolist() + games_df['black'].values.tolist()))
+        players1.sort()
+        players2.sort()
+        self.assertTrue(players1 == players2)
 
     def run_basic_pgn_format_test(self):
-        f = self.get_source_filepath("basic_format.pgn")
-        o = self.get_output_filepath("basic_format")
+        f = self.get_source_filepath("basic_format_test.pgn")
+        o = self.get_output_filepath("basic_format_test")
         pgn_data = PGNData(f, o)
         result = pgn_data.export()
         result.print_summary()
@@ -151,7 +170,7 @@ class FileCreationTestCase(unittest.TestCase):
     def run_single_file_test(self):
 
         f = self.get_source_filepath("pgn_test1.pgn")
-        o = self.get_output_filepath("output1")
+        o = self.get_output_filepath("single_file_test")
         pgn_data = PGNData(f, o)
         result = pgn_data.export()
         result.print_summary()
@@ -161,7 +180,7 @@ class FileCreationTestCase(unittest.TestCase):
 
         f1 = self.get_source_filepath("pgn_test1.pgn")
         f2 = self.get_source_filepath("pgn_test2.pgn")
-        o = self.get_output_filepath("output2")
+        o = self.get_output_filepath("multiple_file_test")
         pgn_data = PGNData([f1, f2], o)
         result = pgn_data.export()
         result.print_summary()
@@ -231,7 +250,7 @@ class FileCreationTestCase(unittest.TestCase):
 
         log.info("check correct number of columns in combined df")
         # exclude the "game_id" to prevent double counting
-        self.assertTrue(len(combined_df.columns)-1 == (len(games_df.columns) - 1) + (len(moves_df.columns) - 1))
+        self.assertTrue(len(combined_df.columns) - 1 == (len(games_df.columns) - 1) + (len(moves_df.columns) - 1))
 
         log.info("check combined has all the columns in games and moves")
         combined_column_list = list(combined_df.columns.values)
@@ -274,6 +293,13 @@ def file_creation_tests():
     test_creation.run_tests()
 
 
+def log_output_as_headline(message, length=50):
+
+    log.info("#" * length)
+    log.info(" {} ".format(message))
+    log.info("#" * length)
+
+
 def run_all_tests():
     """
     This is the main method to run to check the API output
@@ -282,8 +308,10 @@ def run_all_tests():
     >> run_all_tests()
     """
 
-    log.info("Start testing")
+    t = TimeProcess()
+    log_output_as_headline("Start testing")
     board_test()
     fen_stat_tests()
     file_creation_tests()
-    log.info("End testing")
+    log_output_as_headline("end testing")
+    t.print_time_taken()

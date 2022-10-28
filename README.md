@@ -147,6 +147,17 @@ This is a full list of the columns in each output file:
 | move_sequence                  | Sequence of moves upto current position                                 |
 
 
+## Contributions
+
+Contributions are welcome, all modifications should come with appropriate tests demonstrating
+an issue has been resolved, or new functionality is working as intended.
+
+All tests can be run by doing the following:
+
+    from testing.tests import run_all_tests
+    run_all_tests()
+
+
 ## Acknowledgements
 
 This project makes use of the [python-chess](https://github.com/niklasf/python-chess) library.

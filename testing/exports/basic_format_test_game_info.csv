@@ -1,0 +1,2 @@
+game_id,game_order,event,site,date_played,round,white,black,result,white_elo,white_rating_diff,black_elo,black_rating_diff,white_title,black_title,winner,winner_elo,loser,loser_elo,winner_loser_elo_diff,eco,termination,time_control,utc_date,utc_time,variant,ply_count,date_created,file_name
+9514cb04-e7ba-4e5c-9078-1426010be4d4,1,F/S Return Match,"Belgrade, Serbia JUG",1992.11.04,29,"Fischer, Robert J.","Spassky, Boris V.",1/2-1/2,,,,,,,draw,,draw,,,,,,,,,,2022-10-28T21:34:12+0000,basic_format_test.pgn
