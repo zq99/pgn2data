@@ -1,5 +1,11 @@
 # pgn2data
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![GitHub stars](https://img.shields.io/github/stars/zq99/pgn2data?style=social)
+![GitHub forks](https://img.shields.io/github/forks/zq99/pgn2data?style=social)
+
+
+
 This library converts chess pgn files into CSV tabulated data sets.
 
 A pgn file can contain one or multiple chess games. The library parses the pgn file and creates two csv files:
