@@ -50,12 +50,17 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, file_games, file_moves, engine_path, engine_depth):
+    # Indicate the maximum number of item on the queue
+    # Set to 0 to defined an infinite size
+    DEFAULT_QUEUE_SIZE = 1000
+
+    def __init__(self, pgn_file, file_games, file_moves, engine_path, engine_depth, queue_size: int = DEFAULT_QUEUE_SIZE):
         self.pgn_file = pgn_file
         self.file_games = file_games
         self.file_moves = file_moves
         self.engine_path = engine_path
         self.engine_depth = engine_depth
+        self.queue_size = queue_size
 
     def parse_file(self, add_headers_flag=True):
         """
@@ -70,7 +75,7 @@ class Process:
         if self.engine_path is not None:
             engine = chess.engine.SimpleEngine.popen_uci(self.engine_path)
 
-        q = queue.Queue(maxsize=0)
+        q = queue.Queue(maxsize=self.queue_size)
         worker = Thread(target=self.__process_move_queue, args=(q,))
         worker.setDaemon(True)
         worker.start()
