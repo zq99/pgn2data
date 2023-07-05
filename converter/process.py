@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 
 class PlayerMove:
     """
-    data class to hold details of each move
+    PlayerMove = Data class to hold details of each move.
     move = Move object from python chess library
     notation = is algebraic notation of the move
     """
@@ -50,27 +50,62 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, file_games, file_moves, engine_path, engine_depth):
+    def __init__(self, pgn_file, file_games, file_moves, engine_path, engine_depth, moves_required, queue_size=0):
         self.pgn_file = pgn_file
         self.file_games = file_games
         self.file_moves = file_moves
         self.engine_path = engine_path
         self.engine_depth = engine_depth
+        self.max_queue_size = queue_size
+        self.moves_required = moves_required
 
     def parse_file(self, add_headers_flag=True):
         """
-        processes on pgn file and then exports game information
+        This is the main method of the class for invoking the file processing
+        """
+
+        if self.moves_required:
+            self.__parse_file_games_and_moves(add_headers_flag)
+        else:
+            self.__parse_file_games(add_headers_flag)
+
+    def __parse_file_games(self, add_headers_flag=True):
+        """
+        processes the pgn file and then exports game information
+        into the game csv file, moves are ignored
+        """
+
+        log.info("Processing games only in file:{}".format(self.pgn_file))
+        pgn = open(self.pgn_file, encoding="UTF-8")
+
+        game_writer = csv.writer(self.file_games, delimiter=',')
+        if add_headers_flag:
+            game_writer.writerow(file_headers_game)
+
+        order = 1
+        while True:
+            game_id = str(uuid.uuid4())
+            game = chess.pgn.read_game(pgn)
+            if game is None:
+                break  # end of file
+
+            game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
+            order += 1
+
+    def __parse_file_games_and_moves(self, add_headers_flag=True):
+        """
+        processes the pgn file and then exports game information
         into the game csv file, and the moves into the moves csv file
         """
 
-        log.info("Processing file:{}".format(self.pgn_file))
+        log.info("Processing games and moves in file:{}".format(self.pgn_file))
         pgn = open(self.pgn_file, encoding="UTF-8")
 
         engine = None
         if self.engine_path is not None:
             engine = chess.engine.SimpleEngine.popen_uci(self.engine_path)
 
-        q = queue.Queue(maxsize=0)
+        q = queue.Queue(maxsize=self.max_queue_size)
         worker = Thread(target=self.__process_move_queue, args=(q,))
         worker.setDaemon(True)
         worker.start()

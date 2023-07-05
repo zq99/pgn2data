@@ -27,25 +27,30 @@ class Result:
         """
         print("is complete: {}".format(str(self.is_complete)))
         print("games file: {} | size: {}".format(self.games_file.name, self.games_file.size))
-        print("moves file: {} | size: {}".format(self.moves_file.name, self.moves_file.size))
+        if self.moves_file is not None:
+            print("moves file: {} | size: {}".format(self.moves_file.name, self.moves_file.size))
 
     def get_games_df(self):
         return self.__get_as_dataframe(self.games_file.name)
 
     def get_moves_df(self):
-        return self.__get_as_dataframe(self.moves_file.name)
+        if self.moves_file is None:
+            return None
+        else:
+            return self.__get_as_dataframe(self.moves_file.name)
 
     def get_combined_df(self):
         games_df = self.get_games_df()
         moves_df = self.get_moves_df()
-        if (games_df is not None) and (moves_df is not None):
-            if (not games_df.empty) and (not moves_df.empty):
+
+        if (games_df is not None) and (not games_df.empty):
+            if (moves_df is not None) and (not moves_df.empty):
                 combined_df = pd.merge(games_df, moves_df, on='game_id')
                 return combined_df
             else:
-                log.error("one or both files is empty")
+                return games_df
         else:
-            log.error("one or both files not found")
+            log.error("games information is missing or empty")
         return None
 
     def create_combined_file(self, filename):

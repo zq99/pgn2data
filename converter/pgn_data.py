@@ -1,6 +1,7 @@
 import logging
 import ntpath
 import os.path
+import pandas as pd
 
 from common.common import open_file
 from common.log_time import TimeProcess
@@ -10,6 +11,10 @@ from converter.result import ResultFile, Result
 log = logging.getLogger("pgn2data - pgn_data class")
 logging.basicConfig(level=logging.INFO)
 
+DEFAULT_MOVES_REQUIRED = True
+DEFAULT_QUEUE_SIZE = 0
+DEFAULT_COLLAPSE = False
+
 
 class PGNData:
     """
@@ -17,7 +22,7 @@ class PGNData:
     examples of how to call:
         (1) p = PGNData("tal_bronstein_1982.pgn","test")
         (2) p = PGNData("tal_bronstein_1982.pgn")
-        (3) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"],"myfilename")
+        (3) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"],"MyFilename")
         (4) p = PGNData(["tal_bronstein_1982.pgn","tal_bronstein_1982.pgn"])
 
         p.export()
@@ -38,25 +43,34 @@ class PGNData:
         else:
             log.error("Invalid engine depth specified: " + str(depth))
 
-    def export(self):
+    def export(self, moves_required: bool = DEFAULT_MOVES_REQUIRED, queue_size: int = DEFAULT_QUEUE_SIZE, collapse: bool = DEFAULT_COLLAPSE):
         """
         main method to convert pgn to csv
+        :parameter moves_required - if true a games and moves file is created
+        :parameter queue_size - this is the max_size of the blocking queue when processing moves
+        :parameter collapse - this removes any null columns from the final files
         """
+
+        if not isinstance(moves_required, bool):
+            raise TypeError("moves_required must be a bool")
+        if not isinstance(queue_size, int) or queue_size < 0:
+            raise ValueError("queue_size must be an int greater or equal to 0")
+        if not isinstance(collapse, bool):
+            raise TypeError("collapse must be a bool, when True it will remove null columns")
+
         timer = TimeProcess()
         result = Result.get_empty_result()
-        if isinstance(self._pgn, list):
-            if not self.__is_valid_pgn_list(self._pgn):
-                log.error("no pgn files found!")
-                return result
-            file = self.__create_file_name(self._pgn[0]) if self._file_name is None else self._file_name
-            result = self.__process_pgn_list(self._pgn, file)
-        elif isinstance(self._pgn, str):
-            if not os.path.isfile(self._pgn):
-                log.error("no pgn files found!")
-                return result
-            pgn_list = [self._pgn]
-            file = self.__create_file_name(self._pgn) if self._file_name is None else self._file_name
-            result = self.__process_pgn_list(pgn_list, file)
+
+        pgn_list = self._pgn if isinstance(self._pgn, list) else [str(self._pgn)]
+        file_name = self._pgn[0] if isinstance(self._pgn, list) and len(self._pgn) > 0 else str(self._pgn)
+
+        if not self.__is_valid_pgn_list(pgn_list):
+            log.error("No valid pgn file(s) found to convert to csv!")
+            return result
+
+        full_file_name = self.__create_file_name(file_name) if self._file_name is None else self._file_name
+        result = self.__process_pgn_list(pgn_list, full_file_name, moves_required, queue_size, collapse)
+
         timer.print_time_taken()
         return result
 
@@ -64,7 +78,8 @@ class PGNData:
     def __create_file_name(file_path):
         return ntpath.basename(file_path).replace(".pgn", "")
 
-    def __process_pgn_list(self, file_list, output_file=None):
+    def __process_pgn_list(self, file_list, output_file=None, moves_required=DEFAULT_MOVES_REQUIRED,
+                           queue_size=DEFAULT_QUEUE_SIZE, collapse=DEFAULT_COLLAPSE):
         """
         This takes a PGN file and creates two output files
         1. First file contains the game information
@@ -76,29 +91,55 @@ class PGNData:
         result = Result.get_empty_result()
 
         file_name_games = output_file + '_game_info.csv'
-        file_name_moves = output_file + '_moves.csv'
-
         file_games = open_file(file_name_games)
-        file_moves = open_file(file_name_moves)
 
-        if file_games is None or file_moves is None:
-            log.info("No data exported!")
+        if moves_required:
+            file_name_moves = output_file + '_moves.csv'
+            file_moves = open_file(file_name_moves)
+            export_files_initialized = (file_games is not None) and (file_moves is not None)
+        else:
+            file_name_moves, file_moves = None, None
+            export_files_initialized = file_games is not None
+
+        if not export_files_initialized:
+            log.info("Could not initialize the csv files to export the data into!")
             return result
 
         add_headers = True
         for file in file_list:
-            process = Process(file, file_games, file_moves, self._engine_path, self._depth)
+            process = Process(file, file_games, file_moves, self._engine_path, self._depth, moves_required, queue_size)
             process.parse_file(add_headers)
             add_headers = False
 
         file_games.close()
-        file_moves.close()
+        if moves_required:
+            file_moves.close()
+
+        # remove any null columns
+        if collapse:
+            self.__remove_empty_columns(file_name_games)
+            self.__remove_empty_columns(file_name_moves)
 
         # return a result object to indicate outcome
-        result = self.__get_result_of_output_files(file_name_games, file_name_moves)
+        result = self.__get_result_of_output_files(file_name_games, file_name_moves, moves_required)
 
         log.info("ending process..")
         return result
+
+    @staticmethod
+    def __remove_empty_columns(file_name):
+        # Load the CSV file
+        if isinstance(file_name, str):
+            if os.path.isfile(file_name):
+                df = pd.read_csv(file_name)
+
+                # Remove columns where all values are NaN
+                df = df.dropna(axis=1, how='all')
+
+                # Overwrite the original CSV file
+                df.to_csv(file_name, index=False)
+
+                del df
 
     @staticmethod
     def __is_valid_pgn_list(file_list):
@@ -113,16 +154,23 @@ class PGNData:
             return True
         return False
 
-    def __get_result_of_output_files(self, game_file_name, moves_file_name):
+    def __get_result_of_output_files(self, game_file_name, moves_file_name=None, moves_required=DEFAULT_MOVES_REQUIRED) -> Result:
         result = Result.get_empty_result()
+
         try:
             is_games_file_exists = os.path.isfile(game_file_name)
-            is_moves_file_exists = os.path.isfile(moves_file_name)
-            is_files_exists = is_games_file_exists and is_moves_file_exists
             game_size = self.__get_size(game_file_name) if is_games_file_exists else 0
-            move_size = self.__get_size(moves_file_name) if is_moves_file_exists else 0
             game_result = ResultFile(game_file_name, game_size)
-            move_result = ResultFile(moves_file_name, move_size)
+
+            if moves_required:
+                is_moves_file_exists = os.path.isfile(moves_file_name) if moves_file_name is not None else False
+                move_size = self.__get_size(moves_file_name) if is_moves_file_exists else 0
+                move_result = ResultFile(moves_file_name, move_size)
+                is_files_exists = is_games_file_exists and is_moves_file_exists
+            else:
+                is_files_exists = is_games_file_exists
+                move_result = None
+
             result = Result(is_files_exists, game_result, move_result)
         except Exception as e:
             log.error(e)

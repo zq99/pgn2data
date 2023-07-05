@@ -14,7 +14,7 @@ classifiers = [
 
 setup(
     name='pgn2data',
-    version='0.0.8',
+    version='0.0.9',
     packages=['converter', 'common', 'testing'],
     url='https://github.com/zq99/pgn2data',
     python_requires=">=3.7",
@@ -23,7 +23,7 @@ setup(
     author='zq99',
     author_email='zq99@hotmail.com',
     keywords=['CHESS', 'PGN', 'NOTATION', 'DATA', 'FORSYTH–EDWARDS NOTATION', 'CSV', 'DATASET', 'DATABASE',
-              'NORMALIZATION', 'TABULATION', 'STRUCTURED DATA', 'SQL', 'TABLE', 'EXCEL'],
+              'NORMALIZATION', 'TABULATION', 'STRUCTURED DATA', 'SQL', 'TABLE', 'EXCEL', 'PYTHON-CHESS'],
     install_requires=[
         'chess',
         'pandas'

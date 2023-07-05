@@ -72,6 +72,13 @@ The result object also provides methods to import the created files into pandas 
         combined_df = result.get_combined_df()
         print(combined_df.head())
 
+To output the game information only, you can do the following:
+    
+    from converter.pgn_data import PGNData
+    
+    pgn_data = PGNData("tal_bronstein_1982.pgn")
+    pgn_data.export(moves_required=False)
+
 
 ## Examples
 
@@ -138,29 +145,32 @@ This is a full list of the columns in each output file:
 | is_check                       | Is check on board                                                       |
 | is_check_mate                  | Is checkmate on board                                                   |
 | is_fifty_moves                 | Is 50 move complete                                                     |
-| is_fivefold_repetition         | Is 5 fold reptition on board                                            |
+| is_fivefold_repetition         | Is 5 fold repetition on board                                           |
 | is_game_over                   | Is game over                                                            |
 | is_insufficient_material       | Is game over from lack of mating material                               |
 | white_count                    | Count of white pieces                                                   |
 | black_count                    | Count of black pieces                                                   |
-| white_{piece}_count            | Count of white specifed piece                                           |
-| black_{piece}_count            | Count of black specifed piece                                           |
+| white_{piece}_count            | Count of white specified piece                                          |
+| black_{piece}_count            | Count of black specified piece                                          |
 | captured_score_for_white       | Total of black pieces captured                                          |
 | captured_score_for_black       | Total of white pieces captured                                          |
 | fen_row{number}_{colour)_count | Number of pieces for the specified colour on this row of the board      |
 | fen_row{number}_{colour}_value | Total value of pieces for the specified colour on this row of the board |
-| move_sequence                  | Sequence of moves upto current position                                 |
+| move_sequence                  | Sequence of moves up to current position                                |
 
 
 ## Contributions
 
 Contributions are welcome, all modifications should come with appropriate tests demonstrating
-an issue has been resolved, or new functionality is working as intended.
+an issue has been resolved, or new functionality is working as intended. Pull Requests without tests
+will not be merged.
 
-All tests can be run by doing the following:
+The library can be tested by doing the following:
 
     from testing.tests import run_all_tests
     run_all_tests()
+
+New tests should be added to the above method.
 
 
 ## Acknowledgements
