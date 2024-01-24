@@ -54,6 +54,9 @@ If you want to check if the files have been created before doing further process
     else:
         print("Files not created!")
 
+
+### Pandas
+
 The result object also provides methods to import the created files into pandas dataframes:
 
     pgn_data = PGNData("tal_bronstein_1982.pgn")
@@ -71,6 +74,9 @@ The result object also provides methods to import the created files into pandas 
         # read both files joined together
         combined_df = result.get_combined_df()
         print(combined_df.head())
+
+
+### Optimization
 
 To output the game information only, you can do the following:
     
