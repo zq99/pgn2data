@@ -1,35 +1,42 @@
-from timeit import default_timer as timer
-from common.common import seconds_to_text
-from datetime import datetime
 import logging
+from datetime import datetime, timezone
+from timeit import default_timer as timer
+
+from common.common import seconds_to_text
 
 log = logging.getLogger("pgn2data - log_time")
 logging.basicConfig(level=logging.INFO)
 
 
-def get_iso8061_date_format():
+def get_iso8061_date_format() -> str:
+    """Return the timestamp format used by this module."""
     return "%Y-%m-%dT%H:%M:%S%z"
 
 
-def get_time_stamp():
-    stamp_date = datetime.utcnow()
-    return str(stamp_date.strftime(get_iso8061_date_format())) + "+0000"
+def get_time_stamp() -> str:
+    """Return the current UTC timestamp with a +0000 offset."""
+    stamp_date = datetime.now(timezone.utc)
+    return stamp_date.strftime(get_iso8061_date_format())
 
 
 class TimeProcess:
+    """Measure elapsed time and log the start and end times in UTC."""
 
-    def __init__(self):
-        self.start = timer()
-        self.time_started = datetime.utcnow()
-        log.info("initializing at..." + str(self.time_started))
+    def __init__(self) -> None:
+        # Use a performance timer for elapsed time and UTC for logging.
+        self.start: float = timer()
+        self.time_started: datetime = datetime.now(timezone.utc)
+        log.info("initializing at...%s", self.time_started)
 
-    def get_lapsed_time(self):
+    def get_lapsed_time(self) -> float:
+        """Return the elapsed time in seconds since initialization."""
         end = timer()
         return end - self.start
 
-    def print_time_taken(self):
+    def print_time_taken(self) -> None:
+        """Log the elapsed duration and the UTC start and end times."""
         lapsed_time_seconds = self.get_lapsed_time()
-        log.info("time taken sec: " + str(lapsed_time_seconds) + " sec")
-        log.info("time taken: " + str(seconds_to_text(lapsed_time_seconds)))
-        log.info("time started..." + str(self.time_started))
-        log.info("time ended....." + str(datetime.utcnow()))
+        log.info("time taken sec: %s sec", lapsed_time_seconds)
+        log.info("time taken: %s", seconds_to_text(lapsed_time_seconds))
+        log.info("time started...%s", self.time_started)
+        log.info("time ended.....%s", datetime.now(timezone.utc))

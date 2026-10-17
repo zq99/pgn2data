@@ -6,9 +6,6 @@ classifiers = [
     'Operating System :: Microsoft :: Windows :: Windows 10',
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
 ]
 
@@ -17,7 +14,7 @@ setup(
     version='0.0.9',
     packages=['converter', 'common', 'testing'],
     url='https://github.com/zq99/pgn2data',
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     classifiers=classifiers,
     license='GPL-3.0+',
     author='zq99',

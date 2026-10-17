@@ -4,14 +4,18 @@ import ntpath
 import queue
 import uuid
 from threading import Thread
+from typing import Any, Dict, List, Optional, Tuple, NamedTuple, Union
 
 import chess
-import chess.pgn
 import chess.engine
+import chess.pgn
 
 from common.log_time import get_time_stamp
-from converter.fen import FenStats
-from converter.headers import file_headers_game, file_headers_moves, file_headers_stockfish
+from converter.fen import FenRowStats, FenStats
+from converter.headers import (
+    file_headers_game, file_headers_moves, file_headers_stockfish
+)
+from io import TextIOWrapper
 
 log = logging.getLogger("pgn2data - process")
 logging.basicConfig(level=logging.INFO)
@@ -24,25 +28,41 @@ class PlayerMove:
     notation = is algebraic notation of the move
     """
 
-    def __init__(self, move, notation):
+    def __init__(self, move: chess.Move, notation: str) -> None:
+        """Store the move and notation, with an initially empty piece letter."""
         self.move = move
         self.notation = notation
         self.__piece = ""
 
-    def get_from_square(self):
+    def get_from_square(self) -> str:
+        """Return the source square, or an empty string for a short move string."""
         return str(self.move)[0:2] if self.__is_valid_move() else ""
 
-    def get_to_square(self):
+    def get_to_square(self) -> str:
+        """Return the destination square, or an empty string for a short move string."""
         return str(self.move)[2:4] if self.__is_valid_move() else ""
 
-    def __is_valid_move(self):
+    def __is_valid_move(self) -> bool:
+        """Check only that the move string contains at least four characters."""
         return len(str(self.move)) >= 4
 
-    def set_piece(self, piece):
+    def set_piece(self, piece: str) -> None:
+        """Store the moved piece letter."""
         self.__piece = piece
 
-    def get_piece(self):
+    def get_piece(self) -> str:
+        """Return the stored piece letter."""
         return self.__piece
+
+
+class MoveJob(NamedTuple):
+    """A game and the settings needed to export its moves."""
+
+    game_id: str
+    game: chess.pgn.Game
+    moves_writer: Any
+    engine: Optional[chess.engine.SimpleEngine]
+    depth: int
 
 
 class Process:
@@ -50,7 +70,17 @@ class Process:
     Handles the pgn to data conversion
     """
 
-    def __init__(self, pgn_file, file_games, file_moves, engine_path, engine_depth, moves_required, queue_size=0):
+    def __init__(
+            self,
+            pgn_file: str,
+            file_games: TextIOWrapper,
+            file_moves: Optional[TextIOWrapper],
+            engine_path: Optional[str],
+            engine_depth: int,
+            moves_required: bool,
+            queue_size: int = 0,
+    ) -> None:
+        """Store input, output, engine and queue settings for one PGN file."""
         self.pgn_file = pgn_file
         self.file_games = file_games
         self.file_moves = file_moves
@@ -59,17 +89,17 @@ class Process:
         self.max_queue_size = queue_size
         self.moves_required = moves_required
 
-    def parse_file(self, add_headers_flag=True):
+    def parse_file(self, add_headers_flag: bool = True) -> None:
         """
         This is the main method of the class for invoking the file processing
         """
 
         if self.moves_required:
-            self.__parse_file_games_and_moves(add_headers_flag)
+            self.__parse_file_games_and_moves(add_headers_flag=add_headers_flag)
         else:
-            self.__parse_file_games(add_headers_flag)
+            self.__parse_file_games(add_headers_flag=add_headers_flag)
 
-    def __parse_file_games(self, add_headers_flag=True):
+    def __parse_file_games(self, add_headers_flag: bool = True) -> None:
         """
         processes the pgn file and then exports game information
         into the game csv file, moves are ignored
@@ -89,10 +119,17 @@ class Process:
             if game is None:
                 break  # end of file
 
-            game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
+            game_writer.writerow(
+                self.__get_game_row_data(
+                    game=game,
+                    game_id=game_id,
+                    order=order,
+                    file_name=self.pgn_file
+                )
+            )
             order += 1
 
-    def __parse_file_games_and_moves(self, add_headers_flag=True):
+    def __parse_file_games_and_moves(self, add_headers_flag: bool = True) -> None:
         """
         processes the pgn file and then exports game information
         into the game csv file, and the moves into the moves csv file
@@ -105,14 +142,19 @@ class Process:
         if self.engine_path is not None:
             engine = chess.engine.SimpleEngine.popen_uci(self.engine_path)
 
-        q = queue.Queue(maxsize=self.max_queue_size)
-        worker = Thread(target=self.__process_move_queue, args=(q,))
-        worker.setDaemon(True)
+        # The producer queues games; a single worker writes their move rows.
+        q: queue.Queue[MoveJob] = queue.Queue(maxsize=self.max_queue_size)
+
+        worker = Thread(
+            target=self.__process_move_queue,
+            args=(q,),
+            daemon=True,
+        )
         worker.start()
 
         move_writer = csv.writer(self.file_moves, delimiter=',')
         if add_headers_flag:
-            headers = file_headers_moves
+            headers = file_headers_moves.copy()
             if engine is not None:
                 headers.extend(file_headers_stockfish)
             move_writer.writerow(headers)
@@ -128,26 +170,53 @@ class Process:
             if game is None:
                 break  # end of file
 
-            game_writer.writerow(self.__get_game_row_data(game, game_id, order, self.pgn_file))
-            q.put((game_id, game, move_writer, engine, self.engine_depth))
+            game_writer.writerow(
+                self.__get_game_row_data(
+                    game=game,
+                    game_id=game_id,
+                    order=order,
+                    file_name=self.pgn_file
+                )
+            )
+            q.put(
+                MoveJob(
+                    game_id=game_id,
+                    game=game,
+                    moves_writer=move_writer,
+                    engine=engine,
+                    depth=self.engine_depth,
+                )
+            )
             order += 1
 
+        # Wait for every queued game before closing the engine.
         q.join()
 
         if engine is not None:
             engine.quit()
 
-    def __process_move_queue(self, q):
-        """
-        process moves in the blocking queue as they are added
-        """
+
+    def __process_move_queue(self, q: queue.Queue[MoveJob]) -> None:
+        """Process queued games as they become available."""
         while True:
-            item = q.get()
-            # game_id | game | move_writer | engine | engine_depth
-            self.__process_move(item[0], item[1], item[2], item[3], item[4])
+            job = q.get()
+            self.__process_move(
+                game_id=job.game_id,
+                game=job.game,
+                moves_writer=job.moves_writer,
+                engine=job.engine,
+                depth=job.depth,
+            )
             q.task_done()
 
-    def __process_move(self, game_id, game, moves_writer, engine, depth):
+    def __process_move(
+            self,
+            game_id: str,
+            game: chess.pgn.Game,
+            moves_writer: Any,
+            engine: Optional[chess.engine.SimpleEngine],
+            depth: int,
+    ) -> None:
         """
         process all the moves in a game
         """
@@ -168,8 +237,12 @@ class Process:
             # this gets the name of the piece that was moved
             try:
                 index = chess.SQUARE_NAMES.index(player_move.get_to_square())
-            except ValueError as e:
-                log.error(f"Error: {notation} is an invalid move.")
+            except ValueError as exc:
+                log.error(
+                    "Cannot resolve destination square for move %s: %s",
+                    notation,
+                    exc,
+                )
                 break
             p = board.piece_at(chess.SQUARES[index])
 
@@ -177,9 +250,13 @@ class Process:
             sequence += ("|" if len(sequence) > 0 else "") + str(notation)
 
             # output the data about the move to the file
-            row_data, prev_eval, is_white = self.__get_move_row_data(player_move, board, game_id, game, order_number,
-                                                                     players_order_number, sequence, engine, depth,
-                                                                     white_eval, black_eval)
+            row_data, prev_eval, is_white = self.__get_move_row_data(
+                player_move=player_move, board=board,
+                game_id=game_id, game=game, order_number=order_number,
+                players_order_number=players_order_number, sequence=sequence,
+                engine=engine, depth=depth,
+                white_eval=white_eval, black_eval=black_eval
+            )
             moves_writer.writerow(row_data)
 
             # this is tracking the move numbers in the game
@@ -191,60 +268,112 @@ class Process:
             white_eval = prev_eval if is_white else white_eval
             black_eval = prev_eval if not is_white else black_eval
 
-    def __get_game_row_data(self, game, game_id, order, file_name):
+    def __get_game_row_data(
+            self,
+            game: chess.pgn.Game,
+            game_id: str,
+            order: int,
+            file_name: str
+    ) -> List[Any]:
         """
         takes a "game" object and converts it into a list with the data for each column
         """
 
-        winner = self.__get_winner(game)
+        winner = self.__get_winner(game=game)
+
+        loser, winner_elo, loser_elo, winner_loser_elo_diff = (
+            self.__get_winner_loser_details(game=game, winner=winner)
+        )
+
+        # Keep column order aligned with file_headers_game.
+        return [
+            game_id,
+            order,
+            game.headers.get("Event", ""),
+            game.headers.get("Site", ""),
+            game.headers.get("Date", ""),
+            game.headers.get("Round", ""),
+            game.headers.get("White", ""),
+            game.headers.get("Black", ""),
+            game.headers.get("Result", ""),
+            game.headers.get("WhiteElo", ""),
+            game.headers.get("WhiteRatingDiff", ""),
+            game.headers.get("BlackElo", ""),
+            game.headers.get("BlackRatingDiff", ""),
+            game.headers.get("WhiteTitle", ""),
+            game.headers.get("BlackTitle", ""),
+            winner,
+            winner_elo,
+            loser,
+            loser_elo,
+            winner_loser_elo_diff,
+            game.headers.get("ECO", ""),
+            game.headers.get("Termination", ""),
+            game.headers.get("TimeControl", ""),
+            game.headers.get("UTCDate", ""),
+            game.headers.get("UTCTime", ""),
+            game.headers.get("Variant", ""),
+            game.headers.get("PlyCount", ""),
+            get_time_stamp(),
+            ntpath.basename(file_name),
+        ]
+
+    @staticmethod
+    def __get_winner_loser_details(
+            game: chess.pgn.Game,
+            winner: str,
+    ) -> Tuple[str, str, str, Union[int, str]]:
+        """Return loser, winner rating, loser rating and rating difference."""
+        headers = game.headers
         loser = ""
         winner_elo = ""
         loser_elo = ""
-        winner_loser_elo_diff = ""
+        rating_diff: Union[int, str] = ""
 
-        if "White" in game.headers and "Black" in game.headers:
-            loser = game.headers["White"] if winner == game.headers["Black"] else (
-                game.headers["Black"] if winner == game.headers["White"] else winner)
-        if "WhiteElo" in game.headers and "BlackElo" in game.headers:
-            winner_elo = game.headers["WhiteElo"] if winner == game.headers["White"] else (
-                game.headers["BlackElo"] if winner == game.headers["Black"] else "")
-            loser_elo = game.headers["WhiteElo"] if winner == game.headers["Black"] else (
-                game.headers["BlackElo"] if winner == game.headers["White"] else "")
-            winner_loser_elo_diff = 0 if not (str(winner_elo).isnumeric() and str(loser_elo).isnumeric()) else int(
-                winner_elo) - int(loser_elo)
+        if "White" in headers and "Black" in headers:
+            if winner == headers["Black"]:
+                loser = headers["White"]
+            elif winner == headers["White"]:
+                loser = headers["Black"]
+            else:
+                loser = winner
 
-        return [game_id, order,
-                game.headers["Event"] if "Event" in game.headers else "",
-                game.headers["Site"] if "Site" in game.headers else "",
-                game.headers["Date"] if "Date" in game.headers else "",
-                game.headers["Round"] if "Round" in game.headers else "",
-                game.headers["White"] if "White" in game.headers else "",
-                game.headers["Black"] if "Black" in game.headers else "",
-                game.headers["Result"] if "Result" in game.headers else "",
-                game.headers["WhiteElo"] if "WhiteElo" in game.headers else "",
-                game.headers["WhiteRatingDiff"] if "WhiteRatingDiff" in game.headers else "",
-                game.headers["BlackElo"] if "BlackElo" in game.headers else "",
-                game.headers["BlackRatingDiff"] if "BlackRatingDiff" in game.headers else "",
-                game.headers["WhiteTitle"] if "WhiteTitle" in game.headers else "",
-                game.headers["BlackTitle"] if "BlackTitle" in game.headers else "",
-                winner,
-                winner_elo,
-                loser,
-                loser_elo,
-                winner_loser_elo_diff,
-                game.headers["ECO"] if "ECO" in game.headers else "",
-                game.headers["Termination"] if "Termination" in game.headers else "",
-                game.headers["TimeControl"] if "TimeControl" in game.headers else "",
-                game.headers["UTCDate"] if "UTCDate" in game.headers else "",
-                game.headers["UTCTime"] if "UTCTime" in game.headers else "",
-                game.headers["Variant"] if "Variant" in game.headers else "",
-                game.headers["PlyCount"] if "PlyCount" in game.headers else "",
-                get_time_stamp(), ntpath.basename(file_name)]
+        if "WhiteElo" in headers and "BlackElo" in headers:
+            if winner == headers["White"]:
+                winner_elo = headers["WhiteElo"]
+            elif winner == headers["Black"]:
+                winner_elo = headers["BlackElo"]
 
-    __fen_row_counts_and_valuation_dict = {}
+            if winner == headers["Black"]:
+                loser_elo = headers["WhiteElo"]
+            elif winner == headers["White"]:
+                loser_elo = headers["BlackElo"]
 
-    def __get_move_row_data(self, player_move, board, game_id, game, order_number, players_order_number, sequence,
-                            engine, depth, white_eval, black_eval):
+            if str(winner_elo).isnumeric() and str(loser_elo).isnumeric():
+                rating_diff = int(winner_elo) - int(loser_elo)
+            else:
+                rating_diff = 0
+
+        return loser, winner_elo, loser_elo, rating_diff
+
+
+    # Share cached rank statistics across Process instances.
+    __fen_row_counts_and_valuation_dict: Dict[str, List[FenRowStats]] = {}
+
+    def __get_move_row_data(
+            self,
+            player_move: PlayerMove,
+            board: chess.Board,
+            game_id: str,
+            game: chess.pgn.Game,
+            order_number: int,
+            players_order_number: int,
+            sequence: str,
+            engine: Optional[chess.engine.SimpleEngine],
+            depth: int,
+            white_eval: Optional[int],
+            black_eval: Optional[int],
+    ) -> Tuple[List[Any], Optional[int], bool]:
         """
         process each move in a game
         """
@@ -258,7 +387,7 @@ class Process:
             fen_row_valuations = fen_stats.get_fen_row_counts_and_valuation()
             self.__fen_row_counts_and_valuation_dict[fen_stats.fen_position] = fen_row_valuations
 
-        is_white_move = not self.__is_number_even(order_number)
+        is_white_move = not self.__is_number_even(number=order_number)
 
         player_name = game.headers["White"] if is_white_move else game.headers["Black"]
         player_colour = "White" if is_white_move else "Black"
@@ -266,8 +395,12 @@ class Process:
         # this calculates engine evaluation but only an engine has been specified
         evaluation = 0
         if engine is not None:
-            evaluation = self.__get_evaluation_from_board(board, depth, engine, is_white_move)
+            evaluation = self.__get_evaluation_from_board(
+                board=board, depth=depth, engine=engine, is_white_move=is_white_move
+            )
 
+        # Keep column order aligned with file_headers_moves.
+        # FenRowStats retains tuple indexing for the existing CSV layout.
         data = [game_id,
                 order_number,
                 players_order_number,
@@ -279,12 +412,12 @@ class Process:
                 player_move.get_piece().upper(),
                 player_colour,
                 board.board_fen(),
-                1 if board.is_check() else 0,
-                1 if board.is_checkmate() else 0,
-                1 if board.is_fifty_moves() else 0,
-                1 if board.is_fivefold_repetition() else 0,
-                1 if board.is_game_over() else 0,
-                1 if board.is_insufficient_material() else 0,
+                int(board.is_check()),
+                int(board.is_checkmate()),
+                int(board.is_fifty_moves()),
+                int(board.is_fivefold_repetition()),
+                int(board.is_game_over()),
+                int(board.is_insufficient_material()),
                 white_count,
                 black_count,
                 fen_stats.get_piece_count(chess.PAWN, chess.WHITE),
@@ -299,14 +432,10 @@ class Process:
                 fen_stats.get_piece_count(chess.ROOK, chess.BLACK),
                 fen_stats.get_captured_score(chess.WHITE),
                 fen_stats.get_captured_score(chess.BLACK),
-                fen_row_valuations[0][0], fen_row_valuations[1][0], fen_row_valuations[2][0], fen_row_valuations[3][0],
-                fen_row_valuations[4][0], fen_row_valuations[5][0], fen_row_valuations[6][0], fen_row_valuations[7][0],
-                fen_row_valuations[0][1], fen_row_valuations[1][1], fen_row_valuations[2][1], fen_row_valuations[3][1],
-                fen_row_valuations[4][1], fen_row_valuations[5][1], fen_row_valuations[6][1], fen_row_valuations[7][1],
-                fen_row_valuations[0][2], fen_row_valuations[1][2], fen_row_valuations[2][2], fen_row_valuations[3][2],
-                fen_row_valuations[4][2], fen_row_valuations[5][2], fen_row_valuations[6][2], fen_row_valuations[7][2],
-                fen_row_valuations[0][3], fen_row_valuations[1][3], fen_row_valuations[2][3], fen_row_valuations[3][3],
-                fen_row_valuations[4][3], fen_row_valuations[5][3], fen_row_valuations[6][3], fen_row_valuations[7][3],
+                *(row.white_count for row in fen_row_valuations),
+                *(row.white_value for row in fen_row_valuations),
+                *(row.black_count for row in fen_row_valuations),
+                *(row.black_value for row in fen_row_valuations),
                 sequence]
 
         if engine is not None:
@@ -320,9 +449,17 @@ class Process:
         return data, evaluation, is_white_move
 
     @staticmethod
-    def __get_evaluation_from_board(board, depth, engine, is_white_move):
-        # this wrapped in a function because engline.analyse is not able to
+    def __get_evaluation_from_board(
+            board: chess.Board,
+            depth: int,
+            engine: chess.engine.SimpleEngine,
+            is_white_move: bool,
+    ) -> Optional[int]:
+        # this wrapped in a function because engine.analyse is not able to
         # parse the board object without errors
+        """Return the moving side's score in centipawns, or None for a mate score.
+
+        Log analysis errors and retain the default score of zero."""
         evaluation = 0
         try:
             info = engine.analyse(board, chess.engine.Limit(depth=depth))
@@ -333,11 +470,13 @@ class Process:
         return evaluation
 
     @staticmethod
-    def __is_number_even(number):
+    def __is_number_even(number: int) -> bool:
+        """Return whether the number is even."""
         return number % 2 == 0
 
     @staticmethod
-    def __get_winner(game):
+    def __get_winner(game: chess.pgn.Game) -> str:
+        """Return the winner name or draw using the existing result-header rules."""
         info = game.headers
         if "White" in info and "Black" in info and "Result" in info:
             if game.headers["Result"] == "1/2-1/2":

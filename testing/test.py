@@ -5,7 +5,7 @@
     All inputs for the tests are in the folder "pgn", and all
     outputs from the tests are in the folder "exports".
 
-    The PGN files To test core functionality are in the
+    The PGN files to test core functionality are in the
     folder "PGN".
 
     The PGN files in the "issues" folder, are tests for each
@@ -13,23 +13,24 @@
 
     All new functionality or resolved issue needs to have an
     associated test with it (the names of the pgn files used
-    for this are in the format: "report_issue_??.csv".
+    for this are in the format: "reported_issue_??.pgn").
 
 ==========================================================
 """
 
 import glob
+import itertools
 import logging
 import os
 import unittest
 
 import chess
 import pandas as pd
-import itertools
+from typing import List, Optional
 
 from common.common import full_range
 from converter.board_ref import BoardPieces
-from converter.fen import FenStats
+from converter.fen import FenStats, FenRowStats
 from converter.pgn_data import PGNData
 from common.log_time import TimeProcess
 
@@ -38,22 +39,26 @@ logging.basicConfig(level=logging.INFO)
 
 
 class BoardRefTestCase(unittest.TestCase):
+    """Check the legacy board-piece tracker."""
 
-    def setUp(self):
+    def setUp(self) -> None:
+        """Prepare the test case."""
         pass
 
-    def run_piece_at_square_test(self):
+    def run_piece_at_square_test(self) -> None:
+        """Check piece tracking across three ordinary moves."""
         log_message_title("Board ref piece at square test")
         bp = BoardPieces()
 
-        log.info(f'moving e2 to e4')
+        log.info('moving e2 to e4')
         self.__moving_piece("e2", "e4", bp)
-        log.info(f'moving e7 to e6')
+        log.info('moving e7 to e6')
         self.__moving_piece("e7", "e6", bp)
-        log.info(f'moving g1 to f3')
+        log.info('moving g1 to f3')
         self.__moving_piece("g1", "f3", bp)
 
-    def __moving_piece(self, from_square, to_square, bp):
+    def __moving_piece(self, from_square: str, to_square: str, bp: BoardPieces) -> None:
+        """Check source and destination squares before and after a move."""
         log_message_title("Board ref moving piece test")
         from_before = bp.get_piece_at_square(from_square)
         to_before = bp.get_piece_at_square(to_square)
@@ -69,11 +74,14 @@ class BoardRefTestCase(unittest.TestCase):
 
 
 class FenTestCase(unittest.TestCase):
+    """Check piece counts and material values for a sample position."""
 
-    def setUp(self):
+    def setUp(self) -> None:
+        """Prepare the test case."""
         pass
 
-    def run_test(self):
+    def run_test(self) -> None:
+        """Check total counts, captured scores and per-rank material."""
         log_message_title("Fen stats test")
         fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR"
         log.info(fen)
@@ -106,33 +114,39 @@ class FenTestCase(unittest.TestCase):
         for r in full_range(1, 8):
             result = fs.get_piece_count_and_value_for_fen_row(r)
             self.assertEqual(result, valuations[r - 1])
+            self.assertIsInstance(result, FenRowStats)
 
 
 class FileCreationTestCase(unittest.TestCase):
+    """Exercise PGN exports using local fixtures and output files."""
     exports_folder_name = "exports"
     pgn_folder_name = "pgn"
     issues_folder_name = "issues"
     issues_name = 'reported_issue_*.pgn'
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the test case and prepare its folders."""
         super().__init__()
         self.setUp()
 
-    def setUp(self):
-        self.folder = os.path.dirname(os.path.realpath(__file__))
+    def setUp(self) -> None:
+        """Prepare the test case."""
+        self.folder: str = os.path.dirname(os.path.realpath(__file__))
         self.check_folders_exist()
         self.delete_old_test_exports()
 
-    def check_folders_exist(self):
+    def check_folders_exist(self) -> None:
 
+        """Check that output and fixture folders exist."""
         log_message_title("Check test folders exist test")
         folders = [self.get_output_filepath(None), self.get_source_filepath(None),
                    self.get_source_issues_filepath(None)]
         for folder in folders:
             self.assertTrue(os.path.isdir(folder))
 
-    def delete_old_test_exports(self):
+    def delete_old_test_exports(self) -> None:
 
+        """Change to the exports folder and delete its existing files."""
         log_message_title("Delete old exports test")
         output_path = self.get_output_filepath(None)
         os.chdir(output_path)
@@ -143,7 +157,8 @@ class FileCreationTestCase(unittest.TestCase):
                 os.remove(f)
         self.assertTrue(len(os.listdir()) == 0)
 
-    def run_tests(self):
+    def run_tests(self) -> None:
+        """Run the file-export checks in their existing order."""
         self.run_invalid_inputs_test()
         self.run_queue_size_change_test()
         self.run_basic_pgn_format_test()
@@ -156,8 +171,9 @@ class FileCreationTestCase(unittest.TestCase):
         self.run_pandas_dataframe_test()
         self.run_content_test()
 
-    def run_queue_size_change_test(self):
+    def run_queue_size_change_test(self) -> None:
 
+        """Check exports with default, zero and explicit queue sizes."""
         log_message_title("Queue size change test")
         f = self.get_source_filepath("queue_size_test.pgn")
 
@@ -174,8 +190,9 @@ class FileCreationTestCase(unittest.TestCase):
             self.assertTrue(result.is_complete)
             log.info(f"output file is {o}")
 
-    def run_content_test(self):
+    def run_content_test(self) -> None:
 
+        """Check game IDs, colors, piece letters and player names."""
         log_message_title("Content test")
         f = self.get_source_filepath("content_test.pgn")
         o = self.get_output_filepath("content_test")
@@ -203,8 +220,9 @@ class FileCreationTestCase(unittest.TestCase):
         players2.sort()
         self.assertTrue(players1 == players2)
 
-    def run_invalid_inputs_test(self):
+    def run_invalid_inputs_test(self) -> None:
 
+        """Check that invalid input combinations produce incomplete results."""
         log_message_title("Invalid inputs test")
         invalid_parameter_list = [None, [], ""]
         invalid_combination_pairs = list(itertools.combinations(invalid_parameter_list, 2))
@@ -215,8 +233,9 @@ class FileCreationTestCase(unittest.TestCase):
             result.print_summary()
             self.assertFalse(result.is_complete)
 
-    def run_basic_pgn_format_test(self):
+    def run_basic_pgn_format_test(self) -> None:
 
+        """Check export of the basic PGN fixture."""
         log_message_title("Basic pgn format test")
         f = self.get_source_filepath("basic_format_test.pgn")
         o = self.get_output_filepath("basic_format_test")
@@ -225,8 +244,9 @@ class FileCreationTestCase(unittest.TestCase):
         result.print_summary()
         self.assertTrue(result.is_complete)
 
-    def run_collapse_column_test(self):
+    def run_collapse_column_test(self) -> None:
 
+        """Check removal of all-null columns when collapse is enabled."""
         log_message_title("collapse column test")
         f = self.get_source_filepath("collapse_test.pgn")
         collapse_values_list = [None, True, False]
@@ -259,11 +279,12 @@ class FileCreationTestCase(unittest.TestCase):
         df = result.get_games_df()
         self.assertTrue(result.is_complete)
         self.assertTrue(isinstance(df, pd.DataFrame))
-        self.assertTrue(len(df. columns) > 0)
+        self.assertTrue(len(df.columns) > 0)
         del df
 
-    def run_games_only_test(self):
+    def run_games_only_test(self) -> None:
 
+        """Check export with move data disabled."""
         log_message_title("Games only test")
         f = self.get_source_filepath("games_only_test.pgn")
         o = self.get_output_filepath("games_only_test")
@@ -272,8 +293,9 @@ class FileCreationTestCase(unittest.TestCase):
         result.print_summary()
         self.assertTrue(result.is_complete)
 
-    def run_games_queues_parameter_test(self):
+    def run_games_queues_parameter_test(self) -> None:
 
+        """Check a games-only export with an explicit queue size."""
         log_message_title("Games only and queue size parameter test")
         f = self.get_source_filepath("games_only_queue_size_test.pgn")
         o = self.get_output_filepath("games_only_queue_size_test")
@@ -282,8 +304,9 @@ class FileCreationTestCase(unittest.TestCase):
         result.print_summary()
         self.assertTrue(result.is_complete)
 
-    def run_single_file_test(self):
+    def run_single_file_test(self) -> None:
 
+        """Check export of a single PGN file."""
         log_message_title("Single file test")
         f = self.get_source_filepath("pgn_test1.pgn")
         o = self.get_output_filepath("single_file_test")
@@ -292,8 +315,9 @@ class FileCreationTestCase(unittest.TestCase):
         result.print_summary()
         self.assertTrue(result.is_complete)
 
-    def run_multiple_files_test(self):
+    def run_multiple_files_test(self) -> None:
 
+        """Check export of multiple PGN files."""
         log_message_title("Multiple files test")
         f1 = self.get_source_filepath("pgn_test1.pgn")
         f2 = self.get_source_filepath("pgn_test2.pgn")
@@ -303,10 +327,10 @@ class FileCreationTestCase(unittest.TestCase):
         result.print_summary()
         self.assertTrue(result.is_complete)
 
-    def run_reported_github_issues_test(self):
+    def run_reported_github_issues_test(self) -> None:
 
         """
-        Every issue on issues that is resolved should
+        Every resolved GitHub issue should
         have a test pgn file that is added here to
         demonstrate an issue has been fixed. The name
         of the pgn file should be:
@@ -325,7 +349,8 @@ class FileCreationTestCase(unittest.TestCase):
             result = pgn_data.export()
             self.assertTrue(result.is_complete)
 
-    def get_github_issues_test_files(self):
+    def get_github_issues_test_files(self) -> List[str]:
+        """Return matching GitHub issue fixture base names."""
         files = []
         path = self.get_source_issues_filepath(self.issues_name)
         for file in glob.glob(path):
@@ -333,20 +358,24 @@ class FileCreationTestCase(unittest.TestCase):
             files.append(name)
         return files
 
-    def get_source_issues_filepath(self, file=None):
+    def get_source_issues_filepath(self, file: Optional[str] = None) -> str:
+        """Return an issue fixture path, or its folder when no file is given."""
         name_format = '{}/{}/{}/{}' if file is not None else '{}/{}/{}'
         return name_format.format(self.folder, self.pgn_folder_name, self.issues_folder_name, file)
 
-    def get_source_filepath(self, file):
+    def get_source_filepath(self, file: Optional[str]) -> str:
+        """Return a PGN fixture path, or its folder when no file is given."""
         name_format = '{}/{}/{}' if file is not None else '{}/{}'
         return name_format.format(self.folder, self.pgn_folder_name, file)
 
-    def get_output_filepath(self, output_name):
+    def get_output_filepath(self, output_name: Optional[str]) -> str:
+        """Return an export path, or its folder when no name is given."""
         name_format = '{}/{}/{}' if output_name is not None else '{}/{}'
         return name_format.format(self.folder, self.exports_folder_name, output_name)
 
-    def run_pandas_dataframe_test(self):
+    def run_pandas_dataframe_test(self) -> None:
 
+        """Check exported DataFrames, joins and CSV output."""
         log_message_title("Pandas dataframe test")
         f = self.get_source_filepath("pandas_test.pgn")
         o = self.get_output_filepath("pandas_test")
@@ -415,28 +444,33 @@ class FileCreationTestCase(unittest.TestCase):
         del combined_df
 
 
-def board_test():
+def board_test() -> None:
+    """Run the legacy board-reference checks."""
     test_board_ref = BoardRefTestCase()
     test_board_ref.run_piece_at_square_test()
 
 
-def fen_stat_tests():
+def fen_stat_tests() -> None:
+    """Run the FEN statistics checks."""
     test_fen = FenTestCase()
     test_fen.run_test()
 
 
-def file_creation_tests():
+def file_creation_tests() -> None:
+    """Run the file-export checks."""
     test_creation = FileCreationTestCase()
     test_creation.run_tests()
 
 
-def log_output_as_headline(message, length=50, character='#'):
+def log_output_as_headline(message: str, length: int = 50, character: str = '#') -> None:
+    """Log a message between fixed-width divider lines."""
     log.info(character * length)
     log.info(" {} ".format(message))
     log.info(character * length)
 
 
-def log_message_title(message, character='-'):
+def log_message_title(message: str, character: str = '-') -> None:
+    """Log a message between divider lines matching its width."""
     message = f" {message} "
     divider = character * len(message)
     log.info(divider)
@@ -444,7 +478,7 @@ def log_message_title(message, character='-'):
     log.info(divider)
 
 
-def run_all_tests():
+def run_all_tests() -> None:
     """
     This is the main method to run to check the API output
 

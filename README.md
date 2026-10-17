@@ -18,7 +18,7 @@ The two files can be mapped together using a GUID which the process inserts into
 
 ## Installation
 
-The library requires Python 3.7 or later.  
+The library requires Python 3.10 or later.  
  
 To install, type the following command on the python terminal:
 
@@ -165,18 +165,23 @@ This is a full list of the columns in each output file:
 | move_sequence                  | Sequence of moves up to current position                                |
 
 
-## Contributions
+## Contributions and testing
 
-Contributions are welcome, all modifications should come with appropriate tests demonstrating
-an issue has been resolved, or new functionality is working as intended. Pull Requests without tests
-will not be merged.
+Contributions are welcome. Bug fixes and new functionality should include
+appropriate tests demonstrating the expected behaviour.
 
-The library can be tested by doing the following:
+From the repository root, run:
 
     from testing.tests import run_all_tests
     run_all_tests()
 
-New tests should be added to the above method.
+The tests use PGN fixtures in `testing/pgn` and write generated files to
+`testing/exports`. Existing files in `testing/exports` are deleted before
+the tests run.
+
+Add new checks to the relevant test class and ensure they are called by
+the test runner. Regression fixtures for GitHub issues belong in
+`testing/pgn/issues`, using filenames such as `reported_issue_02.pgn`.
 
 
 ## Acknowledgements
