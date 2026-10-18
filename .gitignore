@@ -1,5 +1,13 @@
+# IDE and virtual environments
 .idea/
 venv/
 .venv/
+
+# Python cache
 __pycache__/
 *.py[cod]
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/

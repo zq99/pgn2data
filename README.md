@@ -76,7 +76,7 @@ The result object also provides methods to import the created files into pandas 
         print(combined_df.head())
 
 
-### Optimization
+## Game information
 
 To output the game information only, you can do the following:
     
