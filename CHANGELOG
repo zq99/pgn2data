@@ -1,5 +1,67 @@
 python setup.py sdistChange Log
-==========
+===============================
+
+
+0.0.10 (2026-10-18)
+-------------------
+-Maintenance release focused on readability and maintainability.
+
+-Added type annotations, clearer docstrings and comments.
+-Introduced named structures for FEN rank statistics and queued processing jobs.
+-Simplified internal code while retaining the existing CSV column layout.
+-Replaced deprecated UTC datetime and thread daemon calls.
+-Fixed shared move-header mutation during engine exports.
+-Updated the minimum Python requirement to 3.10.
+
+
+0.0.9 (2023-07-05)
+-------------------
+-Added new tests to the testing framework.
+-Added the ability to remove null columns from the export via the collapse parameter.
+-Added the ability to generate a CSV of just the top level games information and exclude the moves file.
+-Add the ability to configure the queue size of the blocking queue that is used to generate the moves file for each game concurrently as the process processes each game in the PGN file.
+-Minor code enhancements throughout
+
+
+0.0.8 (2022-10-28)
+-------------------
+-Added test to check content of the exports is ok.
+-Bug fix for 'ValueError: '00' is not in list' issue.
+
+
+0.0.7 (2022-03-22)
+-------------------
+-Updated setup requirements for PYPI
+
+
+0.0.6 (2022-07-01)
+-------------------
+-Added functionality to read the created files into pandas dataframes from the return object of the export function.
+-Also expanded the testing module for this new capability.
+
+
+0.0.5 (2022-02-24)
+-------------------
+-#2 - Fix for this issue which happens when the library tries to process a players rating, and it is not in the file.
+
+-More tests have been added to ensure basic formats and other changes are checked when development is done.
+
+
+0.0.4 (2021-07-26)
+-------------------
+-Added new tests
+-Added player title to games output file
+
+
+0.0.3 (2021-05-21)
+-------------------
+-Updated Readme.md
+
+
+0.0.2 (2021-02-05)
+------------------
+-Updated dependencies in setup file, and corrected instructions.
+
 
 0.0.1 (2021-02-01)
 ------------------
