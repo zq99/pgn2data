@@ -147,6 +147,7 @@ This is a full list of the columns in each output file:
 | to_square                      | Piece location after                                                    |
 | piece                          | Initial of piece name                                                   |
 | color                          | Piece color                                                             |
+| clock_seconds                  | Remaining time after the move, in seconds; blank when unavailable.      |
 | fen                            | Fen position                                                            |
 | is_check                       | Is check on board                                                       |
 | is_check_mate                  | Is checkmate on board                                                   |

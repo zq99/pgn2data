@@ -3,6 +3,7 @@ import logging
 import ntpath
 import queue
 import uuid
+from io import TextIOWrapper
 from threading import Thread
 from typing import Any, Dict, List, Optional, Tuple, NamedTuple, Union
 
@@ -15,7 +16,6 @@ from converter.fen import FenRowStats, FenStats
 from converter.headers import (
     file_headers_game, file_headers_moves, file_headers_stockfish
 )
-from io import TextIOWrapper
 
 log = logging.getLogger("pgn2data - process")
 logging.basicConfig(level=logging.INFO)
@@ -28,10 +28,16 @@ class PlayerMove:
     notation = is algebraic notation of the move
     """
 
-    def __init__(self, move: chess.Move, notation: str) -> None:
+    def __init__(
+            self,
+            move: chess.Move,
+            notation: str,
+            clock_seconds: Optional[float] = None
+    ) -> None:
         """Store the move and notation, with an initially empty piece letter."""
         self.move = move
         self.notation = notation
+        self.clock_seconds = clock_seconds
         self.__piece = ""
 
     def get_from_square(self) -> str:
@@ -195,7 +201,6 @@ class Process:
         if engine is not None:
             engine.quit()
 
-
     def __process_move_queue(self, q: queue.Queue[MoveJob]) -> None:
         """Process queued games as they become available."""
         while True:
@@ -229,10 +234,15 @@ class Process:
         white_eval = 0
         black_eval = 0
 
-        for move in game.mainline_moves():
+        for node in game.mainline():
+            move = node.move
             notation = board.san(move)
             board.push(move)
-            player_move = PlayerMove(move, notation)
+            player_move = PlayerMove(
+                move=move,
+                notation=notation,
+                clock_seconds=node.clock(),
+            )
 
             # this gets the name of the piece that was moved
             try:
@@ -356,7 +366,6 @@ class Process:
 
         return loser, winner_elo, loser_elo, rating_diff
 
-
     # Share cached rank statistics across Process instances.
     __fen_row_counts_and_valuation_dict: Dict[str, List[FenRowStats]] = {}
 
@@ -411,6 +420,7 @@ class Process:
                 player_move.get_to_square(),
                 player_move.get_piece().upper(),
                 player_colour,
+                player_move.clock_seconds,
                 board.board_fen(),
                 int(board.is_check()),
                 int(board.is_checkmate()),
@@ -439,12 +449,17 @@ class Process:
                 sequence]
 
         if engine is not None:
-            if isinstance(evaluation, int) and isinstance(white_eval, int) and isinstance(black_eval, int):
-                data.append(evaluation / 100.0)
-                prev_value = white_eval if is_white_move else black_eval
-                data.append(prev_value / 100.0)
-                data.append((float(evaluation) - float(prev_value)) / 100.0)
-                data.append(depth)
+            prev_value = white_eval if is_white_move else black_eval
+
+            data.append(evaluation / 100.0 if evaluation is not None else None)
+            data.append(prev_value / 100.0 if prev_value is not None else None)
+
+            if evaluation is not None and prev_value is not None:
+                data.append((evaluation - prev_value) / 100.0)
+            else:
+                data.append(None)
+
+            data.append(depth)
 
         return data, evaluation, is_white_move
 
@@ -462,7 +477,7 @@ class Process:
         Log analysis errors and retain the default score of zero."""
         evaluation = 0
         try:
-            info = engine.analyse(board, chess.engine.Limit(depth=depth))
+            info = engine.analyse(board=board, limit=chess.engine.Limit(depth=depth))
             pov_score = info["score"]
             evaluation = pov_score.white().score() if is_white_move else pov_score.black().score()
         except Exception as ex:
@@ -476,11 +491,14 @@ class Process:
 
     @staticmethod
     def __get_winner(game: chess.pgn.Game) -> str:
-        """Return the winner name or draw using the existing result-header rules."""
-        info = game.headers
-        if "White" in info and "Black" in info and "Result" in info:
-            if game.headers["Result"] == "1/2-1/2":
-                return "draw"
-            return game.headers["White"] if game.headers["Result"] == "1-0" else game.headers["Black"]
-        else:
-            return ""
+        """Return the winner, 'draw', or an empty string for an unknown result."""
+        result = game.headers.get("Result")
+
+        if result == "1-0":
+            return game.headers.get("White", "")
+        if result == "0-1":
+            return game.headers.get("Black", "")
+        if result == "1/2-1/2":
+            return "draw"
+
+        return ""

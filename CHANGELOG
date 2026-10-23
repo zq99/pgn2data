@@ -1,6 +1,13 @@
 python setup.py sdistChange Log
 ===============================
 
+0.0.11 (2026-10-23)
+-------------------
+- Added remaining player clock time in seconds to the moves file.
+- Fixed unfinished games being recorded as Black wins.
+- Preserved Stockfish output columns when numerical evaluations are unavailable.
+- Improved code clarity and added a script to regenerate sample outputs.
+
 
 0.0.10 (2026-10-18)
 -------------------

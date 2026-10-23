@@ -493,3 +493,7 @@ def run_all_tests() -> None:
     file_creation_tests()
     log_output_as_headline("end testing")
     t.print_time_taken()
+
+
+if __name__ == "__main__":
+    run_all_tests()

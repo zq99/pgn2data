@@ -11,7 +11,7 @@ classifiers = [
 
 setup(
     name='pgn2data',
-    version='0.0.10',
+    version='0.0.11',
     packages=['converter', 'common', 'testing'],
     url='https://github.com/zq99/pgn2data',
     python_requires=">=3.10",

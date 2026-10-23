@@ -51,6 +51,22 @@ class PGNData:
         else:
             log.error("Invalid engine depth specified: " + str(depth))
 
+    @staticmethod
+    def __validate_export_inputs(
+            moves_required: bool,
+            queue_size: int,
+            collapse: bool,
+    ) -> None:
+        """Validate input values for the export method."""
+        if not isinstance(moves_required, bool):
+            raise TypeError("moves_required must be a bool")
+        if not isinstance(queue_size, int) or queue_size < 0:
+            raise ValueError("queue_size must be an int greater or equal to 0")
+        if not isinstance(collapse, bool):
+            raise TypeError(
+                "collapse must be a bool, when True it will remove null columns"
+            )
+
     def export(
         self,
         moves_required: bool = DEFAULT_MOVES_REQUIRED,
@@ -64,22 +80,20 @@ class PGNData:
         :parameter collapse - this removes any null columns from the final files
         """
 
-        if not isinstance(moves_required, bool):
-            raise TypeError("moves_required must be a bool")
-        if not isinstance(queue_size, int) or queue_size < 0:
-            raise ValueError("queue_size must be an int greater or equal to 0")
-        if not isinstance(collapse, bool):
-            raise TypeError("collapse must be a bool, when True it will remove null columns")
+        self.__validate_export_inputs(
+            moves_required=moves_required,
+            queue_size=queue_size,
+            collapse=collapse,
+        )
 
         timer = TimeProcess()
         result = Result.get_empty_result()
 
         pgn_list = self._pgn if isinstance(self._pgn, list) else [str(self._pgn)]
-        file_name = self._pgn[0] if isinstance(self._pgn, list) and len(self._pgn) > 0 else str(self._pgn)
-
         if not self.__is_valid_pgn_list(file_list=pgn_list):
             log.error("No valid pgn file(s) found to convert to csv!")
             return result
+        file_name = pgn_list[0]
 
         full_file_name = (
             self.__create_file_name(file_path=file_name) if self._file_name is None else self._file_name
@@ -178,18 +192,19 @@ class PGNData:
         df = df.dropna(axis=1, how="all")
         df.to_csv(file_name, index=False)
 
+
     @staticmethod
     def __is_valid_pgn_list(file_list: List[str]) -> bool:
-        """
-        valid = list cannot be empty and each entry must exist
-        """
-        if len(file_list) > 0:
-            for file in file_list:
-                if not os.path.isfile(file):
-                    log.error("file not found:" + file)
-                    return False
-            return True
-        return False
+        """Return True if the list is nonempty and every path is an existing file."""
+        if not file_list:
+            return False
+
+        for file in file_list:
+            if not os.path.isfile(file):
+                log.error("File not found: %s", file)
+                return False
+
+        return True
 
     def __get_result_of_output_files(
         self,
