@@ -27,18 +27,21 @@ To install, type the following command on the python terminal:
   
 ## Implementation
 
-Here is a basic example of how to convert a PGN file:
+### Basic
+Here is an example of how to convert a PGN file:
 
     from converter.pgn_data import PGNData
     
     pgn_data = PGNData("tal_bronstein_1982.pgn")
     pgn_data.export()
 
+### Multiple files
 The following is an example of grouping multiple files into the same output file ("output.csv").
 
     pgn_data = PGNData(["file1.pgn","file2.pgn"],"output")
     pgn_data.export()
-    
+
+### Checking results    
 The export function has a return object which allows you to quickly check the size and location of the files created:
 
     pgn_data = PGNData("tal_bronstein_1982.pgn")
@@ -56,7 +59,6 @@ If you want to check if the files have been created before doing further process
 
 
 ### Pandas
-
 The result object also provides methods to import the created files into pandas dataframes:
 
     pgn_data = PGNData("tal_bronstein_1982.pgn")
@@ -76,8 +78,7 @@ The result object also provides methods to import the created files into pandas 
         print(combined_df.head())
 
 
-## Game information
-
+### Game information
 To output the game information only, you can do the following:
     
     from converter.pgn_data import PGNData
